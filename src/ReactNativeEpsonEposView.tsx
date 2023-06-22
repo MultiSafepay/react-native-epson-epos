@@ -1,11 +1,13 @@
-import { requireNativeViewManager } from 'expo-modules-core';
-import * as React from 'react';
+import { requireNativeViewManager } from "expo-modules-core";
+import * as React from "react";
 
-import { ReactNativeEpsonEposViewProps } from './ReactNativeEpsonEpos.types';
+import { ReactNativeEpsonEposViewProps } from "./ReactNativeEpsonEpos.types";
 
 const NativeView: React.ComponentType<ReactNativeEpsonEposViewProps> =
-  requireNativeViewManager('ReactNativeEpsonEpos');
+  requireNativeViewManager("ReactNativeEpsonEpos");
 
-export default function ReactNativeEpsonEposView(props: ReactNativeEpsonEposViewProps) {
+export default function ReactNativeEpsonEposView(
+  props: ReactNativeEpsonEposViewProps
+) {
   return <NativeView {...props} />;
 }

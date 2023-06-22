@@ -1,9 +1,22 @@
 package expo.modules.epsonepos
 
+import android.Manifest
+import expo.modules.kotlin.Promise
+import expo.modules.kotlin.exception.Exceptions
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
+import expo.modules.interfaces.permissions.Permissions
 
 class ReactNativeEpsonEposModule : Module() {
+
+  private val context get() = requireNotNull(appContext.reactContext)
+  // private val permissionsManager: Permissions get() = requireNotNull(appContext.permissions)
+  // private val context: Context
+  //   get() = appContext.reactContext ?: throw Exceptions.ReactContextLost()
+  // private val permissionsManager: Permissions
+  //   get() = appContext.permissions ?: throw Exceptions.PermissionsModuleNotFound()
+  private val epsonManager = EpsonManager()
+
   // Each module class must implement the definition function. The definition consists of components
   // that describes the module's functionality and behavior.
   // See https://docs.expo.dev/modules/module-api for more details about available components.
@@ -33,6 +46,10 @@ class ReactNativeEpsonEposModule : Module() {
       sendEvent("onChange", mapOf(
         "value" to value
       ))
+    }
+
+    AsyncFunction("discoverPrinters") { promise: Promise ->
+      epsonManager.startDiscovery(context, promise)
     }
 
     // Enables the module to be used as a native view. Definition components that are accepted as part of
