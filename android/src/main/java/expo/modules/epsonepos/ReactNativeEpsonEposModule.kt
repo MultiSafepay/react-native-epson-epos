@@ -1,11 +1,14 @@
 package expo.modules.epsonepos
 
 import android.Manifest
-import expo.modules.kotlin.Promise
 import expo.modules.kotlin.exception.Exceptions
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
 import expo.modules.interfaces.permissions.Permissions
+import expo.modules.kotlin.functions.Coroutine
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 class ReactNativeEpsonEposModule : Module() {
 
@@ -48,9 +51,17 @@ class ReactNativeEpsonEposModule : Module() {
       ))
     }
 
+    /*
     AsyncFunction("discoverPrinters") { promise: Promise ->
       epsonManager.startDiscovery(context, promise)
     }
+     */
+
+    AsyncFunction("discoverPrinters") Coroutine { ->
+      //return@Coroutine "THIS IS A TEST!"
+      return@Coroutine epsonManager.startDiscovery(context)
+    }
+
 
     // Enables the module to be used as a native view. Definition components that are accepted as part of
     // the view definition: Prop, Events.

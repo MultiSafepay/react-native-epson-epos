@@ -9,12 +9,19 @@ import com.epson.epos2.discovery.Discovery
 import com.epson.epos2.discovery.DiscoveryListener
 import com.epson.epos2.discovery.FilterOption
 import expo.modules.kotlin.Promise
-import expo.modules.kotlin.exception.UnexpectedException
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import java.util.concurrent.Executors
+import kotlin.Exception
 
 class EpsonManager () {
 
     private val mFilterOption: FilterOption = FilterOption()
-    // private val mUsbManager: UsbManager? = null
+    private var callback: Promise? = null
+    private val pool = requireNotNull( Executors.newSingleThreadExecutor())
 
     init {
         mFilterOption.deviceType = Discovery.TYPE_PRINTER
@@ -24,15 +31,14 @@ class EpsonManager () {
         mFilterOption.bondedDevices = Discovery.TRUE
     }
 
-    fun startDiscovery(context: Context, promise: Promise) {
-        // Stop any previous discovery process
-        stopDiscovery()
+    suspend fun startDiscovery(context: Context): List<HashMap<String, String>> {
+        val results: MutableList<HashMap<String, String>> = mutableListOf()
 
-        try {
-
-            Discovery.start(context,
-                mFilterOption,
-                DiscoveryListener { deviceInfo ->
+        val scope = CoroutineScope(Dispatchers.IO)
+        val job = scope.launch {
+            try {
+                Log.d(SDK_TAG, "🟢 did start to start discovery process")
+                Discovery.start(context, mFilterOption, DiscoveryListener { deviceInfo ->
                     val item = HashMap<String, String>()
                     item["name"] = deviceInfo.deviceName
                     item["target"] = deviceInfo.target
@@ -48,14 +54,58 @@ class EpsonManager () {
                             item["usbSerialNumber"] = usbSerialNumber
                         }
                     }
-                    promise.resolve(item)
-            })
-            Log.d(SDK_TAG, "🟢 did start to start discovery process")
-        } catch (e: Exception) {
-            Log.d(SDK_TAG, "🛑 did fail to start discovery process: "+e.message)
-            promise.reject(UnexpectedException(e))
+                    results.add(item)
+                    Log.d(SDK_TAG, "Device found: "+item["name"])
+                })
+            } catch (e: Exception) {
+                Log.d(SDK_TAG, "🛑 did fail to start discovery process: "+e.message)
+                cancel("did fail to start discovery", e)
+            }
         }
+        delay(5000)
+        scope.cancel()
+        return results
     }
+
+    /*
+    suspend fun startDiscovery(context: Context) {
+        stopDiscovery()
+        val scope = CoroutineScope(Dispatchers.IO)
+        scope.launch {
+            try {
+                Discovery.start(context,
+                    mFilterOption,
+                    DiscoveryListener { deviceInfo ->
+                        val item = HashMap<String, String>()
+                        item["name"] = deviceInfo.deviceName
+                        item["target"] = deviceInfo.target
+                        item["ip"] = deviceInfo.ipAddress
+                        item["mac"] = deviceInfo.macAddress
+                        item["bt"] = deviceInfo.bdAddress
+                        val usbAddress = getUSBAddress(deviceInfo.target)
+                        val usbManager = context.getSystemService(Context.USB_SERVICE) as UsbManager?
+                        if (usbAddress != null && usbManager != null) {
+                            item["usb"] = usbAddress
+                            val usbSerialNumber = getUsbSerialNumber(usbManager, usbAddress)
+                            if (usbSerialNumber != null) {
+                                item["usbSerialNumber"] = usbSerialNumber
+                            }
+                        }
+                        Log.d(SDK_TAG, "Device found: "+item["name"])
+                    })
+                Log.d(SDK_TAG, "🟢 did start to start discovery process")
+            } catch (e: Exception) {
+                Log.d(SDK_TAG, "🛑 did fail to start discovery process: "+e.message)
+                //promise.resolve(UnexpectedException(e))
+                // TODO: List the list of discovered printers
+                return@launch
+            }
+        }
+
+        delay(5000)
+        scope.cancel()
+    }
+     */
 
     private fun stopDiscovery() {
         try {

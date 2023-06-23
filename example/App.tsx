@@ -1,5 +1,5 @@
 import { FC } from "react";
-import { Button, StyleSheet, Text, View } from "react-native";
+import { Alert, Button, StyleSheet, Text, View } from "react-native";
 import * as ReactNativeEpsonEpos from "react-native-epson-epos";
 
 const App: FC = () => {
@@ -11,10 +11,18 @@ const App: FC = () => {
         onPress={() => {
           ReactNativeEpsonEpos.discoverPrinters()
             .then((printers) => {
-              console.log(printers);
+              console.log("🖨️ did receive printers:", printers);
+
+              let str: string = "";
+              printers.forEach((printer) => {
+                str += `name:${printer.name}, target: ${printer.target}\n\n`;
+              });
+
+              Alert.alert("Discovered printers", str);
             })
             .catch((error) => {
               console.warn(error);
+              Alert.alert("Error", error.message);
             });
         }}
       />

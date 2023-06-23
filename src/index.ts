@@ -20,7 +20,17 @@ export function hello(): string {
   return ReactNativeEpsonEposModule.hello();
 }
 
-export function discoverPrinters(): Promise<Record<string, any>> {
+interface Printer {
+  name?: string;
+  target?: string;
+  ip?: string;
+  mac?: string;
+  bt?: string;
+  usb?: string;
+  usbSerialNumber?: string;
+}
+
+export function discoverPrinters(): Promise<Printer[]> {
   return ReactNativeEpsonEposModule.discoverPrinters();
 }
 
