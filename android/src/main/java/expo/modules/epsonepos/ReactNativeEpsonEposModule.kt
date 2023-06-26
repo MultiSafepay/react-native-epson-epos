@@ -1,14 +1,13 @@
 package expo.modules.epsonepos
 
-import android.Manifest
-import expo.modules.kotlin.exception.Exceptions
+import android.graphics.BitmapFactory
+import android.util.Base64
+import expo.modules.kotlin.Promise
+import expo.modules.kotlin.exception.CodedException
+import expo.modules.kotlin.functions.Coroutine
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
-import expo.modules.interfaces.permissions.Permissions
-import expo.modules.kotlin.functions.Coroutine
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
+
 
 class ReactNativeEpsonEposModule : Module() {
 
@@ -51,17 +50,51 @@ class ReactNativeEpsonEposModule : Module() {
       ))
     }
 
-    /*
-    AsyncFunction("discoverPrinters") { promise: Promise ->
-      epsonManager.startDiscovery(context, promise)
+    // -----------------------------
+    // Epson ePOS SDK public methods
+    // -----------------------------
+
+    Function("setTimeout") { timeout: Long ->
+      epsonManager.setTimeout(timeout)
     }
-     */
+
+    Function("getConstants") { ->
+      epsonManager.constants()
+    }
+
+    Function("printerIsSetup") {
+      epsonManager.printerIsSetup()
+    }
 
     AsyncFunction("discoverPrinters") Coroutine { ->
-      //return@Coroutine "THIS IS A TEST!"
       return@Coroutine epsonManager.startDiscovery(context)
     }
 
+    AsyncFunction("setupPrinter") { target: String, series: Int, lang: Int, promise: Promise ->
+      epsonManager.setupPrinter(context, target, series, lang, promise)
+    }
+
+    AsyncFunction("connectPrinter") { promise: Promise ->
+      epsonManager.connectPrinter(promise)
+    }
+
+    AsyncFunction("disconnectPrinter") { promise: Promise ->
+      epsonManager.disconnectPrinter(promise)
+    }
+
+    AsyncFunction("printImage") { base64: String, imageWidth: Int, imageHeight: Int, promise: Promise ->
+      val decodedString: ByteArray = Base64.decode(base64, Base64.DEFAULT)
+      val bitmap = BitmapFactory.decodeByteArray(decodedString, 0, decodedString.size)
+
+      if (bitmap == null) {
+        promise.reject(CodedException("Did fail to decode image"))
+      }
+      epsonManager.printImage(bitmap, imageWidth, imageHeight, promise)
+    }
+
+    AsyncFunction("cutPaper") { promise: Promise ->
+      epsonManager.cutPaper(promise)
+    }
 
     // Enables the module to be used as a native view. Definition components that are accepted as part of
     // the view definition: Prop, Events.
