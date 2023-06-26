@@ -37,8 +37,9 @@ internal object PrintingCommands {
 
 class EpsonManager () {
     private var printer: Printer? = null
+    private var isConnected: Boolean = false
     private val filterOption: FilterOption = FilterOption()
-    private var timeout: Long = 5000;
+    private var timeout: Long = 3000;
     private var target: String? = null
     private val disconnectInterval: Long = 500 // milliseconds
 
@@ -57,7 +58,7 @@ class EpsonManager () {
         constants["SERIES_TM_M30"] = Printer.TM_M30
         constants["SERIES_TM_M30II"] = Printer.TM_M30II
         constants["SERIES_TM_M30III"] = Printer.TM_M30III
-        constants["SERIES_TM_P20"] = Printer.TM_P20
+        constants["SERIES_TM_P20"] =  Printer.TM_P20
         constants["SERIES_TM_P60"] = Printer.TM_P60
         constants["SERIES_TM_P60II"] = Printer.TM_P60II
         constants["SERIES_TM_P80"] = Printer.TM_P80
@@ -172,6 +173,10 @@ class EpsonManager () {
        return printer != null
     }
 
+    fun printerIsConnected(): Boolean {
+       return isConnected
+    }
+
     suspend fun startDiscovery(context: Context): List<HashMap<String, String>> {
         val results: MutableList<HashMap<String, String>> = mutableListOf()
 
@@ -233,14 +238,17 @@ class EpsonManager () {
 
     fun connectPrinter(promise: Promise) {
         try {
-            printer!!.disconnect()
+            if (isConnected) {
+                printer!!.disconnect()
+            }
         } catch (e: Exception) {
-            Log.d(SDK_TAG, "failed to disconnect: $target")
+            Log.d(SDK_TAG, "failed to connect: could not disconnect target=$target")
         }
 
         try {
             Log.d(SDK_TAG, "Will connect to: $target")
             printer!!.connect(target!!, Printer.PARAM_DEFAULT)
+            isConnected = true
             promise.resolve(true)
         } catch (e: Exception) {
             promise.reject(UnexpectedException(e))
@@ -250,10 +258,24 @@ class EpsonManager () {
     fun disconnectPrinter(promise: Promise) {
         try {
             printer?.disconnect()
+            isConnected = false
             Thread.sleep(disconnectInterval)
 
             promise.resolve(true)
         } catch (e: Exception) {
+            var errorMessage: String? = null;
+            if (e is Epos2Exception) {
+                //Note: If printer is processing such as printing and so on, the disconnect API returns ERR_PROCESSING.
+                if (e.errorStatus == Epos2Exception.ERR_PROCESSING) {
+                    Thread.sleep(disconnectInterval)
+                } else {
+                    errorMessage = "Status: ${e.errorStatus}, Reason: $e.message"
+                }
+            } else {
+                errorMessage = e.message
+            }
+
+            Log.d(SDK_TAG, "failed to disconnect (target=$target): $errorMessage")
             promise.reject(UnexpectedException(e))
         }
     }
@@ -262,13 +284,16 @@ class EpsonManager () {
         try {
             printer!!.addPulse(Printer.PARAM_DEFAULT, Printer.PARAM_DEFAULT)
             printer!!.addTextAlign(Printer.ALIGN_CENTER)
-            printer!!.addImage(bitmap, 0, 0, imageWidth, imageHeight, Printer.COLOR_1, Printer.MODE_MONO, Printer.HALFTONE_DITHER, 1.0, Printer.COMPRESS_AUTO )
+            printer!!.addImage(bitmap, 0, 0, imageWidth, imageHeight, Printer.COLOR_1, Printer.MODE_MONO, Printer.HALFTONE_DITHER, Printer.PARAM_DEFAULT.toDouble(), Printer.COMPRESS_AUTO )
 
             printer!!.addCut(Printer.CUT_FEED);
 
             printer!!.sendData(Printer.PARAM_DEFAULT)
-            Thread.sleep(1000) // Add a delay to prevent potential issues
+            // After printing we must clear the bugger
+            printer!!.clearCommandBuffer()
 
+            // Add a delay to prevent potential issues
+            Thread.sleep(disconnectInterval)
             promise.resolve(true)
         } catch (e: Exception) {
             printer?.clearCommandBuffer()

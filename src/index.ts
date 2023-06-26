@@ -4,10 +4,6 @@ import {
   Subscription,
 } from "expo-modules-core";
 
-// Import the native module. On web, it will be resolved to ReactNativeEpsonEpos.web.ts
-// and on native platforms to ReactNativeEpsonEpos.ts
-import { Alert } from "react-native";
-
 import {
   ChangeEventPayload,
   PrinterLanguage,
@@ -17,10 +13,7 @@ import {
 import ReactNativeEpsonEposModule from "./ReactNativeEpsonEposModule";
 import ReactNativeEpsonEposView from "./ReactNativeEpsonEposView";
 import { PRINTER_SERIES } from "./constants";
-import { getPrinterLanguage, getPrinterSeriesByName } from "./utils";
-
-// Get the native constant value.
-export const PI = ReactNativeEpsonEposModule.PI;
+import { getPrinterLanguage, sleep } from "./utils";
 
 export function hello(): string {
   return ReactNativeEpsonEposModule.hello();
@@ -44,6 +37,14 @@ export function discoverPrinters(): Promise<Printer[]> {
   return ReactNativeEpsonEposModule.discoverPrinters();
 }
 
+export function printerIsConnected(): boolean {
+  return ReactNativeEpsonEposModule.printerIsConnected();
+}
+
+export function printerIsSetup(): boolean {
+  return ReactNativeEpsonEposModule.printerIsSetup();
+}
+
 interface SetupPrinterProps {
   target: string;
   seriesName?: PrinterSeriesName;
@@ -54,16 +55,8 @@ export function setupPrinter({
   seriesName,
   language,
 }: SetupPrinterProps): Promise<void> {
-  // const series = getPrinterSeriesByName(seriesName ?? "SERIES_TM_T20");
   const series = PRINTER_SERIES[seriesName ?? "SERIES_TM_T20"];
   const lang = getPrinterLanguage(language ?? "LANG_EN");
-
-  Alert.alert(
-    "CONNECTING TO...",
-    `target: ${target}, seriesName: ${seriesName}, language: ${language}, series: ${series}, lang: ${lang}`
-  );
-  console.log({ target, series, lang, seriesName, language });
-
   return ReactNativeEpsonEposModule.setupPrinter(target, series, lang);
 }
 
@@ -85,7 +78,15 @@ export function printImage({
   width,
   height,
 }: PrintImageProps): Promise<void> {
-  return ReactNativeEpsonEposModule.printImage(base64, width, height);
+  return new Promise(async (resolve, reject) => {
+    try {
+      await ReactNativeEpsonEposModule.printImage(base64, width, height);
+      sleep(100);
+      resolve();
+    } catch (e) {
+      reject(e);
+    }
+  });
 }
 
 export function cutPaper(): Promise<void> {

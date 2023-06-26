@@ -30,3 +30,6 @@ export function getPrinterSeriesByName(
 
   return seriesName ?? "SERIES_TM_T20";
 }
+
+export const sleep = (ms: number) =>
+  new Promise((resolve) => setTimeout(resolve, ms));

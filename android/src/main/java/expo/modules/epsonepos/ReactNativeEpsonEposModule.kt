@@ -66,6 +66,10 @@ class ReactNativeEpsonEposModule : Module() {
       epsonManager.printerIsSetup()
     }
 
+    Function("printerIsConnected") {
+      epsonManager.printerIsConnected()
+    }
+
     AsyncFunction("discoverPrinters") Coroutine { ->
       return@Coroutine epsonManager.startDiscovery(context)
     }
