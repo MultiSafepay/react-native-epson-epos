@@ -50,6 +50,15 @@ class ReactNativeEpsonEposModule : Module() {
       ))
     }
 
+    // Enables the module to be used as a native view. Definition components that are accepted as part of
+    // the view definition: Prop, Events.
+    View(ReactNativeEpsonEposView::class) {
+      // Defines a setter for the `name` prop.
+      Prop("name") { view: ReactNativeEpsonEposView, prop: String ->
+        println(prop)
+      }
+    }
+
     // -----------------------------
     // Epson ePOS SDK public methods
     // -----------------------------
@@ -98,15 +107,6 @@ class ReactNativeEpsonEposModule : Module() {
 
     AsyncFunction("cutPaper") { promise: Promise ->
       epsonManager.cutPaper(promise)
-    }
-
-    // Enables the module to be used as a native view. Definition components that are accepted as part of
-    // the view definition: Prop, Events.
-    View(ReactNativeEpsonEposView::class) {
-      // Defines a setter for the `name` prop.
-      Prop("name") { view: ReactNativeEpsonEposView, prop: String ->
-        println(prop)
-      }
     }
   }
 }

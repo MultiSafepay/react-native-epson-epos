@@ -24,4 +24,7 @@ Pod::Spec.new do |s|
   }
   
   s.source_files = "**/*.{h,m,swift}"
+  s.vendored_frameworks = "PrinterSDK/libepos2.xcframework"
+  s.libraries = "xml2.2"
+  s.frameworks = "ExternalAccessory", "CoreBluetooth"
 end
