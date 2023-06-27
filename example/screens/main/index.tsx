@@ -10,6 +10,7 @@ import {
   ListRenderItem,
 } from "react-native";
 import * as EpsonSDK from "react-native-epson-epos";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 import PrinterItem from "./components/printerItem";
 import { Image } from "./image";
@@ -123,7 +124,7 @@ const MainScreen: FC = () => {
   }, [selectedPrinter]);
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <FlatList
         data={printers}
         renderItem={renderItem}
@@ -137,51 +138,7 @@ const MainScreen: FC = () => {
           onPress={printTestPage}
         />
       </View>
-      {/* <Button
-        title="Discover printers"
-        onPress={() => {
-          EpsonSDK.discoverPrinters()
-            .then((printers) => {
-              console.log("🖨️ did receive printers:", printers);
-
-              let str: string = "";
-              printers.forEach((printer) => {
-                str += `name:${printer.name}, target: ${printer.target}\n\n`;
-              });
-
-              Alert.alert("Discovered printers", str);
-
-              // We select just the 1st printer for testing
-              const printer = printers[0];
-              if (printer && printer.target) {
-                EpsonSDK.setupPrinter({
-                  target: printer.target,
-                })
-                  .then(async () => {
-                    await EpsonSDK.connectPrinter();
-                    console.log("🟢 did connect to printer!");
-                    await EpsonSDK.printImage({
-                      base64: Image.base64,
-                      width: Image.width,
-                      height: Image.height,
-                    });
-                    console.log("🏞️ did print image");
-                    await EpsonSDK.disconnectPrinter();
-                    console.log("🖨 did disconnect from printer!");
-                  })
-                  .catch((error) => {
-                    console.warn(error);
-                    showError(error);
-                  });
-              }
-            })
-            .catch((error) => {
-              console.warn(error);
-              showError(error);
-            });
-        }}
-      /> */}
-    </View>
+    </SafeAreaView>
   );
 };
 

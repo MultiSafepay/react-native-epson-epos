@@ -11,12 +11,19 @@
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
-    "assetBundlePatterns": [
-      "**/*"
-    ],
+    "assetBundlePatterns": ["**/*"],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "expo.modules.epsonepos.example"
+      "bundleIdentifier": "expo.modules.epsonepos.example",
+      "bitcode": false,
+      "infoPlist": {
+        "NSBluetoothAlwaysUsageDescription": "Allow $(PRODUCT_NAME) to access bluetooth. Required to print the receipt",
+        "NSLocalNetworkUsageDescription": "Allow $(PRODUCT_NAME) to access local network. Required to print the receipt",
+        "NSLocationWhenInUseUsageDescription": "Allow $(PRODUCT_NAME) to access local network. Required to print the receipt",
+        "NSBluetoothPeripheralUsageDescription": "Allow $(PRODUCT_NAME) to access bluetooth. Required to print the receipt",
+        "UISupportedExternalAccessoryProtocols": ["com.epson.escpos"],
+        "usesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {

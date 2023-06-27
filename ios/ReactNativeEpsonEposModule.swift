@@ -2,7 +2,7 @@ import ExpoModulesCore
 
 public class ReactNativeEpsonEposModule: Module {
   
-  private var epsonManager = EpsonManager()
+  private let epsonManager = EpsonManager()
   
   // Each module class must implement the definition function. The definition consists of components
   // that describes the module's functionality and behavior.
@@ -65,37 +65,27 @@ public class ReactNativeEpsonEposModule: Module {
     }
 
     AsyncFunction("discoverPrinters") { (promise: Promise) in
-      // return@Coroutine epsonManager.startDiscovery(context)
+      epsonManager.discoverPrinters(promise: promise)
     }
 
     AsyncFunction("setupPrinter") { (target: String, series: Int, lang: Int, promise: Promise) in
-      // epsonManager.setupPrinter(context, target, series, lang, promise)
+      epsonManager.setupPrinter(target: target, series: series, lang: lang, promise: promise)
     }
 
     AsyncFunction("connectPrinter") { (promise: Promise) in
-      // epsonManager.connectPrinter(promise)
-      promise.reject("TODO", "To be implemented")
+      epsonManager.connectPrinter(promise: promise)
     }
 
     AsyncFunction("disconnectPrinter") { (promise: Promise) in
-      // epsonManager.disconnectPrinter(promise)
-      promise.reject("TODO", "To be implemented")
+      epsonManager.disconnectPrinter(promise: promise)
     }
 
     AsyncFunction("printImage") { (base64: String, imageWidth: Int, imageHeight: Int, promise: Promise) in
-      // val decodedString: ByteArray = Base64.decode(base64, Base64.DEFAULT)
-      // val bitmap = BitmapFactory.decodeByteArray(decodedString, 0, decodedString.size)
-
-      // if (bitmap == null) {
-      //   promise.reject(CodedException("Did fail to decode image"))
-      // }
-      // epsonManager.printImage(bitmap, imageWidth, imageHeight, promise)
-      promise.reject("TODO", "To be implemented")
+      epsonManager.printImage(base64: base64, imageWidth: imageWidth, imageHeight: imageHeight, promise: promise)
     }
 
     AsyncFunction("cutPaper") { (promise: Promise) in
-      // epsonManager.cutPaper(promise)
-      promise.reject("TODO", "To be implemented")
+      epsonManager.cutPaper(promise: promise)
     }
   }
 }

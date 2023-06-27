@@ -1,9 +1,21 @@
+import ExpoModulesCore
 
-struct EpsonManager {
+class EpsonManager: NSObject {
   
   private var timeout: Float = 3000
+  private var printer: Epos2Printer? = nil
+  private var isConnected: Bool = false
+  private var target: String?
+  private let filterOption: Epos2FilterOption = {
+    let filter = Epos2FilterOption()
+    filter.deviceType = EPOS2_TYPE_PRINTER.rawValue
+    filter.deviceModel = EPOS2_MODEL_ALL.rawValue
+    return filter
+  }()
+  private let disconnectInterval: Float = 500
+  private var printerList: [Epos2DeviceInfo] = []
     
-  mutating func setTimeout(_ timeout: Float) {
+  func setTimeout(_ timeout: Float) {
     self.timeout = timeout
   }
   
@@ -121,11 +133,175 @@ struct EpsonManager {
   }
   
   func printerIsSetup() -> Bool {
-    fatalError("TODO: printerIsConnected")
+    return printer != nil
   }
   
   func printerIsConnected() -> Bool {
-    fatalError("TODO: printerIsConnected")
+    return isConnected
   }
   
+  func discoverPrinters(promise: Promise) {
+    stopDiscovery()
+    printerList.removeAll()
+    let status = Epos2Discovery.start(self.filterOption, delegate: self)
+    if (status != EPOS2_SUCCESS.rawValue) {
+      printDebugLog("🛑 did fail to start discovery process")
+      promise.reject(PrinterError.startDiscovery.rawValue, "Did fail to start discovery")
+    } else {
+      printDebugLog("🟢 did start discovery process")
+      
+      // Gather all the results after `timeout` and return the response
+      let deadline = dispatchTime(fromMilliseconds: Int(timeout))
+      DispatchQueue.global().asyncAfter(deadline: deadline, execute: { [weak self] in
+        // Collect all the values received
+        let discoveredDevices = self?.printerList ?? []
+        
+        let results = discoveredDevices.map { [
+          "name": $0.deviceName,
+          "target": $0.target,
+          "ip": $0.ipAddress,
+          "mac": $0.macAddress,
+          "bt": $0.bdAddress
+          ]
+        }
+        promise.resolve(results)
+      })
+    }
+  }
+  
+  func setupPrinter(target: String, series: Int, lang: Int, promise: Promise) {
+    if let printer = printer {
+      printer.clearCommandBuffer()
+      printer.setReceiveEventDelegate(nil)
+    }
+    self.printer = nil
+    
+    printer = Epos2Printer(printerSeries: Int32(series), lang: Int32(lang))
+    self.target = target
+    
+    promise.resolve(true)
+  }
+  
+  func connectPrinter(promise: Promise) {
+    guard let printer = printer else {
+      promise.reject(PrinterError.notFound.rawValue, "did fail to connect printer: printer not found")
+      return
+    }
+    
+    if (isConnected) {
+      let status = printer.disconnect()
+      if status != EPOS2_SUCCESS.rawValue {
+        printDebugLog("🛑 did fail to disconnect printer")
+      } else {
+        printDebugLog("🟢 did disconnect printer")
+      }
+    }
+    
+    let status = printer.connect(target, timeout: Int(timeout))
+    if status != EPOS2_SUCCESS.rawValue {
+      isConnected = false
+      printDebugLog("🛑 did fail to connect printer")
+      promise.reject(PrinterError.connectPrinter.rawValue, "did fail to connect to printer")
+    } else {
+      isConnected = true
+      printDebugLog("🟢 did connect printer")
+      promise.resolve(true)
+    }
+  }
+  
+  func disconnectPrinter(promise: Promise) {
+    guard let printer = printer else {
+      promise.reject(PrinterError.notFound.rawValue, "did fail to disconnect printer: printer not found")
+      return
+    }
+    let status = printer.disconnect()
+    if status != EPOS2_SUCCESS.rawValue {
+      isConnected = true
+      printDebugLog("🛑 did fail to disconnect printer")
+      promise.reject(PrinterError.disconnectPrinter.rawValue, "did fail to disconnect printer")
+    } else {
+      isConnected = false
+      printDebugLog("🟢 did disconnect printer")
+      promise.resolve(true)
+    }
+  }
+  
+  func printImage(base64: String, imageWidth: Int, imageHeight: Int, promise: Promise) {
+    guard let printer = printer else {
+      promise.reject(PrinterError.notFound.rawValue, "did fail to print image: printer not found")
+      return
+    }
+    
+    guard let image = imageFromBase64(base64) else {
+      promise.reject(PrinterError.notValidImage.rawValue, "did fail to print image: image not valid")
+      return
+    }
+    
+    let status = printer.add(image,
+                             x: 0,
+                             y: 0,
+                             width: imageWidth,
+                             height: imageHeight,
+                             color: EPOS2_PARAM_DEFAULT,
+                             mode: EPOS2_PARAM_DEFAULT,
+                             halftone: EPOS2_PARAM_DEFAULT,
+                             brightness: Double(EPOS2_PARAM_DEFAULT),
+                             compress: EPOS2_PARAM_DEFAULT)
+    printer.addCut(EPOS2_CUT_FEED.rawValue)
+    printer.sendData(Int(EPOS2_PARAM_DEFAULT))
+    
+    // After printing we must clear the bugger
+    printer.clearCommandBuffer()
+    
+    // Add a delay to prevent potential issues
+    let deadline = dispatchTime(fromMilliseconds: Int(disconnectInterval))
+    DispatchQueue.global().asyncAfter(deadline: deadline, execute: {
+      if status != EPOS2_SUCCESS.rawValue {
+        printDebugLog("🛑 did fail to print image")
+        promise.reject(PrinterError.printImage.rawValue, "did fail to print image")
+      } else {
+        printDebugLog("🟢 did print image")
+        promise.resolve(true)
+      }
+    })
+  }
+  
+  func cutPaper(promise: Promise) {
+    printer?.addCut(EPOS2_CUT_FEED.rawValue)
+    printer?.clearCommandBuffer()
+    promise.resolve(true)
+  }
+  
+}
+
+private extension EpsonManager {
+  func stopDiscovery() {
+    let status = Epos2Discovery.stop()
+    if (status != EPOS2_SUCCESS.rawValue) {
+      printDebugLog("🛑 did fail to stop discovery process")
+    } else {
+      printDebugLog("🟢 did stop discovery process")
+    }
+  }
+  
+  func dispatchTime(fromMilliseconds milliseconds: Int) -> DispatchTime {
+      let seconds = milliseconds / 1000
+      let nanoSeconds = (milliseconds % 1000) * 1_000_000
+      let uptimeNanoseconds = DispatchTime.now().uptimeNanoseconds + UInt64(seconds) * 1_000_000_000 + UInt64(nanoSeconds)
+      return DispatchTime(uptimeNanoseconds: uptimeNanoseconds)
+  }
+  
+  func imageFromBase64(_ base64: String) -> UIImage? {
+    if let url = URL(string: base64), let data = try? Data(contentsOf: url) {
+        return UIImage(data: data)
+    }
+    return nil
+  }
+
+}
+
+extension EpsonManager: Epos2DiscoveryDelegate {
+  func onDiscovery(_ deviceInfo: Epos2DeviceInfo!) {
+    printerList.append(deviceInfo)
+  }
 }
