@@ -152,7 +152,7 @@ class EpsonManager: NSObject {
       
       // Gather all the results after `timeout` and return the response
       let deadline = dispatchTime(fromMilliseconds: Int(timeout))
-      DispatchQueue.global().asyncAfter(deadline: deadline, execute: { [weak self] in
+      DispatchQueue.global(qos: .userInitiated).asyncAfter(deadline: deadline, execute: { [weak self] in
         // Collect all the values received
         let discoveredDevices = self?.printerList ?? []
         
@@ -161,7 +161,8 @@ class EpsonManager: NSObject {
           "target": $0.target,
           "ip": $0.ipAddress,
           "mac": $0.macAddress,
-          "bt": $0.bdAddress
+          "bt": $0.bdAddress,
+          "usb": usbAddress(target: $0.target)
           ]
         }
         promise.resolve(results)
@@ -211,7 +212,8 @@ class EpsonManager: NSObject {
   
   func disconnectPrinter(promise: Promise) {
     guard let printer = printer else {
-      promise.reject(PrinterError.notFound.rawValue, "did fail to disconnect printer: printer not found")
+      // Do nothing if we haven't setup a printer yet
+      promise.resolve(true)
       return
     }
     let status = printer.disconnect()
@@ -255,7 +257,7 @@ class EpsonManager: NSObject {
     
     // Add a delay to prevent potential issues
     let deadline = dispatchTime(fromMilliseconds: Int(disconnectInterval))
-    DispatchQueue.global().asyncAfter(deadline: deadline, execute: {
+    DispatchQueue.global(qos: .userInitiated).asyncAfter(deadline: deadline, execute: {
       if status != EPOS2_SUCCESS.rawValue {
         printDebugLog("🛑 did fail to print image")
         promise.reject(PrinterError.printImage.rawValue, "did fail to print image")
@@ -270,6 +272,24 @@ class EpsonManager: NSObject {
     printer?.addCut(EPOS2_CUT_FEED.rawValue)
     printer?.clearCommandBuffer()
     promise.resolve(true)
+  }
+  
+  func pairingBluetoothPrinter(promise: Promise) {
+    let pairingPrinter = Epos2BluetoothConnection()
+    guard let pairingPrinter = pairingPrinter else {
+      promise.reject(PrinterError.startBluetooth.rawValue, "did fail to start bluetooth connection")
+      return
+    }
+    var bluetoothTarget = NSMutableString()
+    let result = pairingPrinter.connectDevice(bluetoothTarget)
+    switch (result) {
+    case EPOS2_BT_SUCCESS.rawValue, EPOS2_BT_ERR_ALREADY_CONNECT.rawValue:
+      promise.resolve(bluetoothMessage(code: result))
+      break
+    default:
+      promise.reject(PrinterError.connectBluetooth.rawValue, "did fail to connect bluetooth device: \(bluetoothMessage(code: result))")
+      break
+    }
   }
   
 }
@@ -303,5 +323,38 @@ private extension EpsonManager {
 extension EpsonManager: Epos2DiscoveryDelegate {
   func onDiscovery(_ deviceInfo: Epos2DeviceInfo!) {
     printerList.append(deviceInfo)
+  }
+}
+
+func usbAddress(target: String) -> String? {
+  let rangeFirstThree = NSMakeRange(0, 3)
+  let rangeThreeTillLength = NSMakeRange(4, target.count-4)
+  let nsTarget = NSString(string: target)
+  let prefix = nsTarget.substring(with: rangeFirstThree)
+  if prefix == "USB" {
+    return nsTarget.substring(with: rangeThreeTillLength)
+  } else {
+    return nil
+  }
+}
+
+func bluetoothMessage(code: Int32) -> String {
+  switch (code) {
+  case EPOS2_BT_SUCCESS.rawValue:
+    return "BLUETOOTH_SUCCESS"
+  case EPOS2_BT_ERR_PARAM.rawValue:
+    return "BLUETOOTH_ERROR_PARAM"
+  case EPOS2_BT_ERR_CANCEL.rawValue:
+    return "BLUETOOTH_ERROR_CANCEL"
+  case EPOS2_BT_ERR_FAILURE.rawValue:
+    return "BLUETOOTH_ERROR_FAILURE"
+  case EPOS2_BT_ERR_UNSUPPORTED.rawValue:
+    return "BLUETOOTH_ERROR_UNSUPPORTED"
+  case EPOS2_BT_ERR_ILLEGAL_DEVICE.rawValue:
+    return "BLUETOOTH_ERROR_ILLEGAL_DEVICE"
+  case EPOS2_BT_ERR_ALREADY_CONNECT.rawValue:
+    return "BLUETOOTH_ERROR_ALREADY_CONNECT"
+  default:
+    return "BLUETOOTH_ERROR_UNKNOWN"
   }
 }

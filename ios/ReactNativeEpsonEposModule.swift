@@ -87,5 +87,9 @@ public class ReactNativeEpsonEposModule: Module {
     AsyncFunction("cutPaper") { (promise: Promise) in
       epsonManager.cutPaper(promise: promise)
     }
+    
+    AsyncFunction("pairingBluetoothPrinter") { (promise: Promise) in
+      epsonManager.pairingBluetoothPrinter(promise: promise)
+    }
   }
 }

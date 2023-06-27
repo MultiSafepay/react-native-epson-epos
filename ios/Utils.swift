@@ -22,6 +22,8 @@ enum PrinterError: String {
   case notFound = "ERROR_PRINTER_NOT_FOUND"
   case notValidImage = "ERROR_IMAGE_NOT_VALID"
   case printImage = "ERROR_PRINT_IMAGE"
+  case connectBluetooth = "ERROR_CONNECT_BLUETOOTH"
+  case startBluetooth = "ERROR_START_BLUETOOTH"
 }
 
 func printDebugLog(_ message: String) {

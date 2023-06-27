@@ -3,6 +3,7 @@ import {
   EventEmitter,
   Subscription,
 } from "expo-modules-core";
+import { Platform } from "react-native";
 
 import {
   ChangeEventPayload,
@@ -91,6 +92,22 @@ export function printImage({
 
 export function cutPaper(): Promise<void> {
   return ReactNativeEpsonEposModule.cutPaper();
+}
+
+type BluetoothStatus =
+  | "BLUETOOTH_SUCCESS"
+  | "BLUETOOTH_ERROR_PARAM"
+  | "BLUETOOTH_ERROR_CANCEL"
+  | "BLUETOOTH_ERROR_FAILURE"
+  | "BLUETOOTH_ERROR_UNSUPPORTED"
+  | "BLUETOOTH_ERROR_ILLEGAL_DEVICE"
+  | "BLUETOOTH_ERROR_ALREADY_CONNECT"
+  | "BLUETOOTH_ERROR_UNKNOWN";
+export function pairingBluetoothPrinter(): Promise<BluetoothStatus> {
+  if (Platform.OS === "ios") {
+    return ReactNativeEpsonEposModule.pairingBluetoothPrinter();
+  }
+  return Promise.resolve("BLUETOOTH_SUCCESS");
 }
 
 export async function setValueAsync(value: string) {
