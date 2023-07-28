@@ -9,6 +9,7 @@ import {
   ChangeEventPayload,
   PrinterLanguage,
   PrinterSeriesName,
+  PrinterPortType,
   ReactNativeEpsonEposViewProps,
 } from "./ReactNativeEpsonEpos.types";
 import ReactNativeEpsonEposModule from "./ReactNativeEpsonEposModule";
@@ -34,8 +35,10 @@ export function setTimeout(timeout: number) {
   ReactNativeEpsonEposModule.setTimeout(timeout);
 }
 
-export function discoverPrinters(): Promise<Printer[]> {
-  return ReactNativeEpsonEposModule.discoverPrinters();
+export function discoverPrinters(
+  portType: PrinterPortType
+): Promise<Printer[]> {
+  return ReactNativeEpsonEposModule.discoverPrinters(portType);
 }
 
 export function printerIsConnected(): boolean {
@@ -103,11 +106,50 @@ type BluetoothStatus =
   | "BLUETOOTH_ERROR_ILLEGAL_DEVICE"
   | "BLUETOOTH_ERROR_ALREADY_CONNECT"
   | "BLUETOOTH_ERROR_UNKNOWN";
-export function pairingBluetoothPrinter(): Promise<BluetoothStatus> {
-  if (Platform.OS === "ios") {
-    return ReactNativeEpsonEposModule.pairingBluetoothPrinter();
+
+const getBluetoothMessage = (status: BluetoothStatus): string => {
+  switch (status) {
+    case "BLUETOOTH_ERROR_ALREADY_CONNECT":
+      return "The function was executed successfully";
+    case "BLUETOOTH_ERROR_CANCEL":
+      return "Pairing connection was canceled.";
+    case "BLUETOOTH_ERROR_FAILURE":
+      return "An unknown error occurred.";
+    case "BLUETOOTH_ERROR_ILLEGAL_DEVICE":
+      return "An invalid device was selected.";
+    case "BLUETOOTH_ERROR_PARAM":
+      return "An invalid parameter was passed.";
+    case "BLUETOOTH_ERROR_UNKNOWN":
+      return "An unexpected error ocurred.";
+    case "BLUETOOTH_SUCCESS":
+      return "The function was executed successfully.";
+    case "BLUETOOTH_ERROR_UNSUPPORTED":
+    default:
+      return "The function was executed on an unsupported OS.";
   }
-  return Promise.resolve("BLUETOOTH_SUCCESS");
+};
+
+interface BluetoothPrinterResponse {
+  status: BluetoothStatus;
+  reason: string;
+}
+
+export function pairingBluetoothPrinter(): Promise<BluetoothPrinterResponse> {
+  if (Platform.OS === "ios") {
+    return new Promise((resolve, reject) => {
+      ReactNativeEpsonEposModule.pairingBluetoothPrinter()
+        .then((status: BluetoothStatus) => {
+          resolve({ status, reason: getBluetoothMessage(status) });
+        })
+        .catch(reject);
+    });
+  }
+  // On Android, we always returns success
+  const status: BluetoothStatus = "BLUETOOTH_SUCCESS";
+  return Promise.resolve({
+    status,
+    reason: getBluetoothMessage(status),
+  });
 }
 
 export async function setValueAsync(value: string) {

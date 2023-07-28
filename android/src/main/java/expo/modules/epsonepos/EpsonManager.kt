@@ -177,8 +177,15 @@ class EpsonManager () {
        return isConnected
     }
 
-    suspend fun startDiscovery(context: Context): List<HashMap<String, String>> {
+    suspend fun startDiscovery(portType: String, context: Context): List<HashMap<String, String>> {
         val results: MutableList<HashMap<String, String>> = mutableListOf()
+
+        when (portType) {
+            "LAN" -> filterOption.portType = Discovery.PORTTYPE_TCP
+            "BLUETOOTH" -> filterOption.portType = Discovery.PORTTYPE_BLUETOOTH
+            "USB" -> Discovery.PORTTYPE_USB
+            else -> filterOption.portType = Discovery.PORTTYPE_ALL
+        }
 
         try {
             stopDiscovery()

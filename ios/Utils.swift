@@ -26,6 +26,13 @@ enum PrinterError: String {
   case startBluetooth = "ERROR_START_BLUETOOTH"
 }
 
+enum PrinterPortType: String {
+  case all = "ALL"
+  case lan = "LAN"
+  case bluetooth = "BLUETOOTH"
+  case usb = "USB"
+}
+
 func printDebugLog(_ message: String) {
   #if DEBUG
   print(message)

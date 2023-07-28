@@ -79,8 +79,8 @@ class ReactNativeEpsonEposModule : Module() {
       epsonManager.printerIsConnected()
     }
 
-    AsyncFunction("discoverPrinters") Coroutine { ->
-      return@Coroutine epsonManager.startDiscovery(context)
+    AsyncFunction("discoverPrinters") Coroutine { portType: String ->
+      return@Coroutine epsonManager.startDiscovery(portType, context)
     }
 
     AsyncFunction("setupPrinter") { target: String, series: Int, lang: Int, promise: Promise ->

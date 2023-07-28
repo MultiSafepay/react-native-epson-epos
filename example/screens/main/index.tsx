@@ -27,15 +27,6 @@ const MainScreen: FC = () => {
   >();
   const [discovering, setDiscovering] = useState(false);
 
-  useEffect(() => {
-    navigation.setOptions({
-      title: "Epson ePOS SDK",
-      headerRight: () => (
-        <Button disabled={discovering} title="Discover" onPress={discover} />
-      ),
-    });
-  }, [discovering]);
-
   const deselectPrinter = useCallback(() => {
     setSelectedPrinter(undefined);
     EpsonSDK.disconnectPrinter()
@@ -57,7 +48,7 @@ const MainScreen: FC = () => {
       setDiscovering(true);
       deselectPrinter();
       setPrinters([]);
-      const discoveredPrinters = await EpsonSDK.discoverPrinters();
+      const discoveredPrinters = await EpsonSDK.discoverPrinters("ALL");
       setPrinters(discoveredPrinters);
       setDiscovering(false);
     } catch (e) {
@@ -65,6 +56,36 @@ const MainScreen: FC = () => {
         console.error(e);
       }
       showError(e as Error);
+    }
+  }, [deselectPrinter]);
+
+  const discoverViaBluetooth = useCallback(async () => {
+    const onError = (error: Error) => {
+      if (__DEV__) {
+        console.error(error);
+      }
+      setPrinters([]);
+      setDiscovering(false);
+      showError(error);
+    };
+
+    try {
+      setDiscovering(true);
+      deselectPrinter();
+      setPrinters([]);
+
+      const pairingResponse = await EpsonSDK.pairingBluetoothPrinter();
+      if (pairingResponse.status !== "BLUETOOTH_SUCCESS") {
+        throw new Error(
+          `Discover bluetooth printers failed: ${pairingResponse.reason}`
+        );
+      }
+
+      const discoveredPrinters = await EpsonSDK.discoverPrinters("BLUETOOTH");
+      setPrinters(discoveredPrinters);
+      setDiscovering(false);
+    } catch (e) {
+      onError(e as Error);
     }
   }, [deselectPrinter]);
 
@@ -122,6 +143,22 @@ const MainScreen: FC = () => {
       }
     }
   }, [selectedPrinter]);
+
+  useEffect(() => {
+    navigation.setOptions({
+      title: "Epson ePOS SDK",
+      headerRight: () => (
+        <View style={{ flexDirection: "row" }}>
+          <Button
+            disabled={discovering}
+            title="Bluetooth"
+            onPress={discoverViaBluetooth}
+          />
+          <Button disabled={discovering} title="Discover" onPress={discover} />
+        </View>
+      ),
+    });
+  }, [discovering, discoverViaBluetooth]);
 
   return (
     <SafeAreaView style={styles.container}>

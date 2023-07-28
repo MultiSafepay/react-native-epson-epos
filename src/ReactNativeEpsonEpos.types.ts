@@ -45,3 +45,5 @@ export type PrinterLanguage =
   | "LANG_TH"
   | "LANG_VI"
   | "LANG_MULTI";
+
+export type PrinterPortType = "ALL" | "LAN" | "BLUETOOTH" | "USB";

@@ -14,6 +14,8 @@ class EpsonManager: NSObject {
   }()
   private let disconnectInterval: Float = 500
   private var printerList: [Epos2DeviceInfo] = []
+  private var bluetoothTarget: NSMutableString = NSMutableString()
+  private let pairingPrinter = Epos2BluetoothConnection()
     
   func setTimeout(_ timeout: Float) {
     self.timeout = timeout
@@ -140,9 +142,25 @@ class EpsonManager: NSObject {
     return isConnected
   }
   
-  func discoverPrinters(promise: Promise) {
+  func discoverPrinters(portType: PrinterPortType, promise: Promise) {
     stopDiscovery()
     printerList.removeAll()
+    
+    switch portType {
+    case .all:
+      self.filterOption.portType = EPOS2_PORTTYPE_ALL.rawValue
+      break
+    case .bluetooth:
+      self.filterOption.portType = EPOS2_PORTTYPE_BLUETOOTH.rawValue
+      break
+    case .lan:
+      self.filterOption.portType = EPOS2_PORTTYPE_TCP.rawValue
+      break
+    case .usb:
+      self.filterOption.portType = EPOS2_PORTTYPE_USB.rawValue
+      break
+    }
+    
     let status = Epos2Discovery.start(self.filterOption, delegate: self)
     if (status != EPOS2_SUCCESS.rawValue) {
       printDebugLog("🛑 did fail to start discovery process")
@@ -217,6 +235,7 @@ class EpsonManager: NSObject {
       return
     }
     let status = printer.disconnect()
+    pairingPrinter?.disconnectDevice(bluetoothTarget as String) // Disconnect via Bluetooth
     if status != EPOS2_SUCCESS.rawValue {
       isConnected = true
       printDebugLog("🛑 did fail to disconnect printer")
@@ -275,19 +294,20 @@ class EpsonManager: NSObject {
   }
   
   func pairingBluetoothPrinter(promise: Promise) {
-    let pairingPrinter = Epos2BluetoothConnection()
     guard let pairingPrinter = pairingPrinter else {
       promise.reject(PrinterError.startBluetooth.rawValue, "did fail to start bluetooth connection")
       return
     }
-    var bluetoothTarget = NSMutableString()
-    let result = pairingPrinter.connectDevice(bluetoothTarget)
+    
+    let result = pairingPrinter.connectDevice(self.bluetoothTarget)
     switch (result) {
     case EPOS2_BT_SUCCESS.rawValue, EPOS2_BT_ERR_ALREADY_CONNECT.rawValue:
-      promise.resolve(bluetoothMessage(code: result))
+      promise.resolve(bluetoothMessage(code: EPOS2_BT_SUCCESS.rawValue))
       break
     default:
-      promise.reject(PrinterError.connectBluetooth.rawValue, "did fail to connect bluetooth device: \(bluetoothMessage(code: result))")
+      self.printer?.disconnect()
+      pairingPrinter.disconnectDevice(bluetoothTarget as String)
+      promise.resolve(bluetoothMessage(code: result))
       break
     }
   }
