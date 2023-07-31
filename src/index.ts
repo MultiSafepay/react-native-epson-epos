@@ -16,7 +16,7 @@ import ReactNativeEpsonEposModule from "./ReactNativeEpsonEposModule";
 import ReactNativeEpsonEposView from "./ReactNativeEpsonEposView";
 import { PRINTER_SERIES } from "./constants";
 import { getPrinterLanguage, getPrinterSeriesByName, sleep } from "./utils";
-export type { PrinterPortType };
+export type { PrinterPortType, PrinterLanguage, PrinterSeriesName };
 export { getPrinterSeriesByName, getPrinterLanguage };
 
 export function hello(): string {
