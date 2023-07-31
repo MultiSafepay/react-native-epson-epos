@@ -3,7 +3,7 @@ import {
   EventEmitter,
   Subscription,
 } from "expo-modules-core";
-import { Platform } from "react-native";
+import { Platform, PermissionsAndroid, Permission } from "react-native";
 
 import {
   ChangeEventPayload,
@@ -16,6 +16,7 @@ import ReactNativeEpsonEposModule from "./ReactNativeEpsonEposModule";
 import ReactNativeEpsonEposView from "./ReactNativeEpsonEposView";
 import { PRINTER_SERIES } from "./constants";
 import { getPrinterLanguage, sleep } from "./utils";
+export type { PrinterPortType };
 
 export function hello(): string {
   return ReactNativeEpsonEposModule.hello();
@@ -134,7 +135,13 @@ interface BluetoothPrinterResponse {
   reason: string;
 }
 
-export function pairingBluetoothPrinter(): Promise<BluetoothPrinterResponse> {
+interface PermissionsSettings {
+  permission: Permission;
+  title: string;
+  message: string;
+}
+
+export async function pairingBluetoothPrinter(): Promise<BluetoothPrinterResponse> {
   if (Platform.OS === "ios") {
     return new Promise((resolve, reject) => {
       ReactNativeEpsonEposModule.pairingBluetoothPrinter()
@@ -143,13 +150,113 @@ export function pairingBluetoothPrinter(): Promise<BluetoothPrinterResponse> {
         })
         .catch(reject);
     });
+  } else {
+    try {
+      // API Level 28 or lower: BLUETOOTH, BLUETOOTH_ADMIN and ACCESS_COARSE_LOCATION
+      // API Level 29 or 30: BLUETOOTH_CONNECT, BLUETOOTH_ADMIN, ACCESS_FINE_LOCATION
+      // API Level 31 or higher: BLUETOOTH_SCAN and BLUETOOTH_CONNECT
+      const apiLevel = Number(Platform.Version);
+      const permissionsSettings: PermissionsSettings[] = [];
+      console.log(apiLevel);
+
+      if (apiLevel <= 28) {
+        const title = "Bluetooth Permission";
+        const message =
+          "The app requires access to your Bluetooth for printing.";
+        permissionsSettings.push(
+          ...[
+            {
+              permission: PermissionsAndroid.PERMISSIONS.BLUETOOTH,
+              title,
+              message,
+            },
+            {
+              permission: PermissionsAndroid.PERMISSIONS.BLUETOOTH_ADMIN,
+              title,
+              message,
+            },
+            {
+              permission: PermissionsAndroid.PERMISSIONS.ACCESS_COARSE_LOCATION,
+              title,
+              message,
+            },
+          ]
+        );
+      } else if (apiLevel >= 29 && apiLevel <= 30) {
+        const title = "Bluetooth Permission";
+        const message =
+          "The app requires access to your Bluetooth for printing.";
+        permissionsSettings.push(
+          ...[
+            {
+              permission: PermissionsAndroid.PERMISSIONS.BLUETOOTH_CONNECT,
+              title,
+              message,
+            },
+            {
+              permission: PermissionsAndroid.PERMISSIONS.BLUETOOTH_ADMIN,
+              title,
+              message,
+            },
+            {
+              permission: PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+              title,
+              message,
+            },
+          ]
+        );
+      } else {
+        permissionsSettings.push(
+          ...[
+            {
+              permission: PermissionsAndroid.PERMISSIONS.BLUETOOTH_SCAN,
+              title: "Bluetooth Scan Permission",
+              message:
+                "The app requires access to your Bluetooth for scanning.",
+            },
+            {
+              permission: PermissionsAndroid.PERMISSIONS.BLUETOOTH_CONNECT,
+              title: "Bluetooth Connect Permission",
+              message:
+                "The app requires access to your Bluetooth for connecting to printers.",
+            },
+          ]
+        );
+      }
+
+      console.log(permissionsSettings);
+      for (const permissionSettings of permissionsSettings) {
+        console.log(permissionSettings);
+        if (permissionSettings.permission) {
+          const status = await PermissionsAndroid.request(
+            permissionSettings.permission,
+            {
+              title: permissionSettings.title,
+              message: permissionSettings.message,
+              buttonNegative: "Cancel",
+              buttonPositive: "OK",
+            }
+          );
+          if (status !== PermissionsAndroid.RESULTS.GRANTED) {
+            throw new Error(
+              `Bluetooth permission denied: please check your settings`
+            );
+          }
+        } else {
+          console.warn("Missing permission");
+        }
+      }
+
+      // On Android, we always returns success if we have bluetooth permissions
+      const status: BluetoothStatus = "BLUETOOTH_SUCCESS";
+      return Promise.resolve({
+        status,
+        reason: getBluetoothMessage(status),
+      });
+    } catch (err) {
+      return Promise.reject(err);
+    }
   }
-  // On Android, we always returns success
-  const status: BluetoothStatus = "BLUETOOTH_SUCCESS";
-  return Promise.resolve({
-    status,
-    reason: getBluetoothMessage(status),
-  });
 }
 
 export async function setValueAsync(value: string) {

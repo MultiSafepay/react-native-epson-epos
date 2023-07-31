@@ -43,21 +43,24 @@ const MainScreen: FC = () => {
       });
   }, []);
 
-  const discover = useCallback(async () => {
-    try {
-      setDiscovering(true);
-      deselectPrinter();
-      setPrinters([]);
-      const discoveredPrinters = await EpsonSDK.discoverPrinters("ALL");
-      setPrinters(discoveredPrinters);
-      setDiscovering(false);
-    } catch (e) {
-      if (__DEV__) {
-        console.error(e);
+  const discover = useCallback(
+    async (portType: EpsonSDK.PrinterPortType) => {
+      try {
+        setDiscovering(true);
+        deselectPrinter();
+        setPrinters([]);
+        const discoveredPrinters = await EpsonSDK.discoverPrinters(portType);
+        setPrinters(discoveredPrinters);
+        setDiscovering(false);
+      } catch (e) {
+        if (__DEV__) {
+          console.error(e);
+        }
+        showError(e as Error);
       }
-      showError(e as Error);
-    }
-  }, [deselectPrinter]);
+    },
+    [deselectPrinter]
+  );
 
   const discoverViaBluetooth = useCallback(async () => {
     const onError = (error: Error) => {
@@ -147,18 +150,8 @@ const MainScreen: FC = () => {
   useEffect(() => {
     navigation.setOptions({
       title: "Epson ePOS SDK",
-      headerRight: () => (
-        <View style={{ flexDirection: "row" }}>
-          <Button
-            disabled={discovering}
-            title="Bluetooth"
-            onPress={discoverViaBluetooth}
-          />
-          <Button disabled={discovering} title="Discover" onPress={discover} />
-        </View>
-      ),
     });
-  }, [discovering, discoverViaBluetooth]);
+  }, [discovering]);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -167,6 +160,39 @@ const MainScreen: FC = () => {
         renderItem={renderItem}
         keyExtractor={(printer, index) => `${index}-${printer.target}`}
         style={{ width: "100%" }}
+        ListHeaderComponent={() => (
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: 10,
+              backgroundColor: "orange",
+            }}
+          >
+            <Button
+              disabled={discovering}
+              title="Bluetooth"
+              onPress={discoverViaBluetooth}
+            />
+            <View style={{ width: 5 }} />
+            <Button
+              disabled={discovering}
+              title="Lan"
+              onPress={() => {
+                discover("LAN");
+              }}
+            />
+            <View style={{ width: 5 }} />
+            <Button
+              disabled={discovering}
+              title="USB"
+              onPress={() => {
+                discover("USB");
+              }}
+            />
+          </View>
+        )}
       />
       <View style={{ width: "100%" }}>
         <Button

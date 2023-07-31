@@ -181,11 +181,21 @@ class EpsonManager () {
         val results: MutableList<HashMap<String, String>> = mutableListOf()
 
         when (portType) {
-            "LAN" -> filterOption.portType = Discovery.PORTTYPE_TCP
-            "BLUETOOTH" -> filterOption.portType = Discovery.PORTTYPE_BLUETOOTH
-            "USB" -> Discovery.PORTTYPE_USB
-            else -> filterOption.portType = Discovery.PORTTYPE_ALL
+            "LAN" -> {
+                filterOption.portType = Discovery.PORTTYPE_TCP
+            }
+            "BLUETOOTH" -> {
+                filterOption.portType = Discovery.PORTTYPE_BLUETOOTH
+            }
+            "USB" -> {
+                filterOption.portType = Discovery.PORTTYPE_USB
+            }
+            else -> {
+                filterOption.portType = Discovery.PORTTYPE_ALL
+            }
         }
+
+        Log.d(SDK_TAG, "startDiscovery: "+portType+" filterOption.portType="+filterOption.portType.toString())
 
         try {
             stopDiscovery()
