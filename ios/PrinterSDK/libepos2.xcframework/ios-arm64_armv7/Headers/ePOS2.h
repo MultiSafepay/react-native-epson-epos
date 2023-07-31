@@ -1,7 +1,7 @@
 //
 //  Copyright (C) Seiko Epson Corporation 2016 - 2023. All rights reserved.
 //
-//  ePOS SDK Ver.2.24.0
+//  ePOS SDK Ver.2.25.0
 
 #ifdef __OBJC__
 #import <Foundation/Foundation.h>

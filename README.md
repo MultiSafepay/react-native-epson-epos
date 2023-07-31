@@ -4,8 +4,8 @@ _An unofficial React Native library for printing on an EPSON TM printer with the
 
 This library supports the following Epson native drivers:
 
-- Android: <strong>2.24.0a</strong>
-- iOS: <strong>2.24.0a</strong>
+- Android: <strong>2.25.0</strong>
+- iOS: <strong>2.25.0</strong>
 
 # Installation
 
