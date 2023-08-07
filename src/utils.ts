@@ -10,7 +10,8 @@ import { PRINTER_LANGUAGE, PRINTER_SERIES } from "./constants";
  */
 export function getPrinterLanguage(language: PrinterLanguage): number {
   let lang;
-  if (typeof PRINTER_LANGUAGE[language] === "number") {
+  const selection = PRINTER_LANGUAGE[language];
+  if (typeof selection === "number") {
     lang = PRINTER_LANGUAGE[language];
   } else {
     console.warn("An invalid parameter of language was passed.");

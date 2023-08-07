@@ -2,7 +2,7 @@ import ExpoModulesCore
 
 class EpsonManager: NSObject {
   
-  private var timeout: Float = 3000
+  private var timeout: Float = 5000
   private var printer: Epos2Printer? = nil
   private var isConnected: Bool = false
   private var target: String?
@@ -239,7 +239,7 @@ class EpsonManager: NSObject {
     if status != EPOS2_SUCCESS.rawValue {
       isConnected = true
       printDebugLog("🛑 did fail to disconnect printer")
-      promise.reject(PrinterError.disconnectPrinter.rawValue, "did fail to disconnect printer")
+      promise.reject(PrinterError.disconnectPrinter.rawValue, "did fail to disconnect printer: \(status)")
     } else {
       isConnected = false
       printDebugLog("🟢 did disconnect printer")
@@ -330,10 +330,10 @@ private extension EpsonManager {
       let uptimeNanoseconds = DispatchTime.now().uptimeNanoseconds + UInt64(seconds) * 1_000_000_000 + UInt64(nanoSeconds)
       return DispatchTime(uptimeNanoseconds: uptimeNanoseconds)
   }
-  
+
   func imageFromBase64(_ base64: String) -> UIImage? {
-    if let url = URL(string: base64), let data = try? Data(contentsOf: url) {
-        return UIImage(data: data)
+    if let data = Data(base64Encoded: base64) {
+      return UIImage(data: data)
     }
     return nil
   }

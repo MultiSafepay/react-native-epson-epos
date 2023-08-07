@@ -39,7 +39,7 @@ class EpsonManager () {
     private var printer: Printer? = null
     private var isConnected: Boolean = false
     private val filterOption: FilterOption = FilterOption()
-    private var timeout: Long = 3000;
+    private var timeout: Long = 5000;
     private var target: String? = null
     private val disconnectInterval: Long = 500 // milliseconds
 

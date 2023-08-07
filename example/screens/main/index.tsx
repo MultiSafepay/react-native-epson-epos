@@ -77,12 +77,14 @@ const MainScreen: FC = () => {
       deselectPrinter();
       setPrinters([]);
 
-      const pairingResponse = await EpsonSDK.pairingBluetoothPrinter();
-      if (pairingResponse.status !== "BLUETOOTH_SUCCESS") {
-        throw new Error(
-          `Discover bluetooth printers failed: ${pairingResponse.reason}`
-        );
-      }
+      // const pairingResponse = await EpsonSDK.pairingBluetoothPrinter();
+      // if (pairingResponse.status !== "BLUETOOTH_SUCCESS") {
+      //   if (__DEV__) {
+      //     console.error(
+      //       `Discover bluetooth printers failed: ${pairingResponse.reason}`
+      //     );
+      //   }
+      // }
 
       const discoveredPrinters = await EpsonSDK.discoverPrinters("BLUETOOTH");
       setPrinters(discoveredPrinters);

@@ -110,7 +110,7 @@ const {
   DRAWER_5PIN,
 } = ReactNativeEpsonEposModule.getConstants();
 
-export const PRINTER_LANGUAGE: { [key in PrinterLanguage]: number } = {
+export enum PRINTER_LANGUAGE {
   LANG_EN,
   LANG_JA,
   LANG_ZH_CN,
@@ -119,9 +119,9 @@ export const PRINTER_LANGUAGE: { [key in PrinterLanguage]: number } = {
   LANG_TH,
   LANG_VI,
   LANG_MULTI,
-};
+}
 
-export const PRINTER_SERIES: { [key in PrinterSeriesName]: number } = {
+export enum PRINTER_SERIES {
   SERIES_TM_M10,
   SERIES_TM_M30,
   SERIES_TM_M30II,
@@ -150,4 +150,4 @@ export const PRINTER_SERIES: { [key in PrinterSeriesName]: number } = {
   SERIES_TM_T88VII,
   SERIES_TM_L90LFC,
   SERIES_TM_L100,
-};
+}
