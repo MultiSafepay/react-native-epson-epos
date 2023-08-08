@@ -258,11 +258,20 @@ class EpsonManager: NSObject {
       return
     }
     
-    let status = printer.add(image,
+    let imgHeight = image.size.height
+    let imgWidth = image.size.width
+    
+    let size = CGSize(width: CGFloat(imageWidth), height: imgHeight*CGFloat(imageWidth)/imgWidth)
+    guard let scaledImage = scaleImage(image, size: size) else {
+      promise.reject(PrinterError.notValidImage.rawValue, "did fail to print image: failed to resize image")
+      return
+    }
+    
+    let status = printer.add(scaledImage,
                              x: 0,
                              y: 0,
-                             width: imageWidth,
-                             height: imageHeight,
+                             width: Int(size.width),
+                             height: Int(size.height),
                              color: EPOS2_PARAM_DEFAULT,
                              mode: EPOS2_PARAM_DEFAULT,
                              halftone: EPOS2_PARAM_DEFAULT,
@@ -336,6 +345,22 @@ private extension EpsonManager {
       return UIImage(data: data)
     }
     return nil
+  }
+  
+  func scaleImage(_ image: UIImage, size: CGSize) -> UIImage? {
+    let scale: CGFloat = max(size.width/image.size.width, size.height/image.size.height);
+    let width: CGFloat = image.size.width * scale;
+    let height: CGFloat = image.size.height * scale;
+    let imageRect: CGRect = CGRectMake((size.width - width)/2.0,
+                                       (size.height - height)/2.0,
+                                       width,
+                                       height);
+
+    UIGraphicsBeginImageContextWithOptions(size, false, 0);
+    image.draw(in: imageRect)
+    let newImage = UIGraphicsGetImageFromCurrentImageContext();
+    UIGraphicsEndImageContext();
+    return newImage;
   }
 
 }
