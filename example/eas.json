@@ -3,14 +3,11 @@
     "version": ">= 3.14.0"
   },
   "build": {
+    // Use Expo Dev Clients for development builds
     "development": {
       "distribution": "internal",
-      "android": {
-        "gradleCommand": ":app:assembleDebug"
-      },
-      "ios": {
-        "buildConfiguration": "Debug"
-      }
+      "developmentClient": true,
+      "channel": "development"
     },
     "preview": {
       "distribution": "internal"
@@ -18,7 +15,8 @@
     "production": {
       "android": {
         "buildType": "apk"
-      }
+      },
+      "channel": "production"
     }
   },
   "submit": {

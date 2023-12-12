@@ -1,7 +1,7 @@
 //
 //  Copyright (C) Seiko Epson Corporation 2016 - 2023. All rights reserved.
 //
-//  ePOS SDK Ver.2.25.0
+//  ePOS SDK Ver.2.27.0
 
 #ifdef __OBJC__
 #import <Foundation/Foundation.h>
@@ -741,6 +741,8 @@ enum Epos2CATService : int {
     EPOS2_SERVICE_PITAPA,
     EPOS2_SERVICE_FISC,
     EPOS2_SERVICE_QR,
+    EPOS2_SERVICE_CREDIT_DEBIT,
+    EPOS2_SERVICE_MULTI,
 };
 
 enum Epos2CATPaymentCondition : int {
@@ -847,6 +849,7 @@ enum Epos2PrinterSettingPrintSpeed : int {
 
 @class Epos2CommonPrinter;
 @class Epos2Printer;
+@class Epos2LFCPrinter;
 @class Epos2HybridPrinter;
 @class Epos2LineDisplay;
 @class Epos2Keyboard;
@@ -861,9 +864,11 @@ enum Epos2PrinterSettingPrintSpeed : int {
 @class Epos2GermanyFiscalElement;
 
 @class Epos2PrinterStatusInfo;
+@class Epos2LFCPrinterStatusInfo;
 @class Epos2HybridPrinterStatusInfo;
 @class Epos2CATAuthorizeResult;
 @class Epos2CATDirectIOResult;
+@class Epos2CATCashDepositResult;
 @class Epos2MSRData;
 @class Epos2DeviceInfo;
 @class Epos2FirmwareInfo;
@@ -883,6 +888,22 @@ enum Epos2PrinterSettingPrintSpeed : int {
 @required
 - (void) onPtrReceive:(Epos2Printer *)printerObj code:(int)code status:(Epos2PrinterStatusInfo *)status printJobId:(NSString *)printJobId;
 @end
+
+@protocol Epos2LFCStatusChangeDelegate <NSObject>
+@required
+- (void) onLFCStatusChange:(Epos2LFCPrinter *)lfcPrinterObj eventType:(int)eventType;
+@end
+
+@protocol Epos2LFCSendCompleteDelegate <NSObject>
+@required
+- (void) onSendComplete:(Epos2LFCPrinter *)lfcPrinterObj jobNumber:(long)jobNumber code:(int)code status:(Epos2LFCPrinterStatusInfo *)status;
+@end
+
+@protocol Epos2LFCPrintCompleteDelegate <NSObject>
+@required
+- (void) onPrintComplete:(Epos2LFCPrinter *)lfcPrinterObj jobNumber:(long)jobNumber;
+@end
+
 
 @protocol Epos2HybdStatusChangeDelegate <NSObject>
 @required
@@ -1049,6 +1070,11 @@ enum Epos2PrinterSettingPrintSpeed : int {
 - (void) onCATScanData:(Epos2CAT *)catObj code:(int)code additionalSecurityInformation:(NSString *)asi;
 @end
 
+@protocol Epos2CATCashDepositDelegate <NSObject>
+@required
+- (void) onCATCashDeposit:(Epos2CAT *)catObj code:(int)code sequence:(long)sequence service:(int)service result:(Epos2CATCashDepositResult *)result;
+@end
+
 @protocol Epos2MSRDataDelegate <NSObject>
 @required
 - (void) onMSRData:(Epos2MSR *)msrObj data:(Epos2MSRData *)data;
@@ -1152,6 +1178,10 @@ enum Epos2PrinterSettingPrintSpeed : int {
 - (int) addPageRectangle:(long)x1 y1:(long)y1 x2:(long)x2 y2:(long)y2 style:(int)style;
 - (int) addCut:(int)type;
 - (int) addPulse:(int)drawer time:(int)time;
+- (int) addSound:(int)pattern repeat:(long)repeat cycle:(long)cycle;
+- (int) addFeedPosition:(int)position;
+- (int) addRotateBegin;
+- (int) addRotateEnd;
 - (int) addCommand:(NSData *)data;
 
 - (int) forceRecover:(long)timeout;
@@ -1198,11 +1228,7 @@ enum Epos2PrinterSettingPrintSpeed : int {
 - (int) addHLine:(long)x1 x2:(long)x2 style:(int)style;
 - (int) addVLineBegin:(long)x style:(int)style lineId:(int *)lineId;
 - (int) addVLineEnd:(int)lineId;
-- (int) addSound:(int)pattern repeat:(long)repeat cycle:(long)cycle;
-- (int) addFeedPosition:(int)position;
 - (int) addLayout:(int)type width:(long)width height:(long)height marginTop:(long)marginTop marginBottom:(long)marginBottom offsetCut:(long)offsetCut offsetLabel:(long)offsetLabel;
-- (int) addRotateBegin;
-- (int) addRotateEnd;
 - (int) forceStopSound:(long)timeout;
 - (int) forceCommand:(NSData *)data timeout:(long)timeout;
 
@@ -1237,6 +1263,37 @@ enum Epos2PrinterSettingPrintSpeed : int {
 - (int) setPrinterSettingEx:(long)timeout jsonString:(NSString *)jsonString;
 - (int) setPrinterSettingEx:(long)timeout jsonString:(NSString *)jsonString administratorPassword:(NSString *)administratorPassword;
 - (int) getPrinterInformation:(long)timeout delegate:(id<Epos2PrinterInformationDelegate>)delegate;
+@end
+
+@interface Epos2LFCPrinterStatusInfo : NSObject
+@property(readonly, getter=getConnection) int connection;
+@property(readonly, getter=getOnline) int online;
+@property(readonly, getter=getCoverOpen) int coverOpen;
+@property(readonly, getter=getPaper) int paper;
+@property(readonly, getter=getPaperFeed) int paperFeed;
+@property(readonly, getter=getPanelSwitch) int panelSwitch;
+@property(readonly, getter=getWaitOnline) int waitOnline;
+@property(readonly, getter=getDrawer) int drawer;
+@property(readonly, getter=getErrorStatus) int errorStatus;
+@property(readonly, getter=getAutoRecoverError) int autoRecoverError;
+@property(readonly, getter=getBuzzer) int buzzer;
+@property(readonly, getter=getAdapter) int adapter;
+@property(readonly, getter=getBatteryLevel) int batteryLevel;
+@property(readonly, getter=getRemovalWaiting) int removalWaiting;
+@end
+
+@interface Epos2LFCPrinter : Epos2CommonPrinter
+- (id) initWithPrinterSeries:(int)printerSeries lang:(int)lang;
+- (void) dealloc;
+
+- (int) connect:(NSString *) target timeout:(long)timeout;
+- (int) disconnect;
+- (Epos2LFCPrinterStatusInfo *) getStatus;
+- (int) sendLFCData:(long)timeout jobNumber:(long)jobNumber;
+
+- (void) setStatusChangeEventDelegate:(id<Epos2LFCStatusChangeDelegate>)delegate;
+- (void) setSendCompleteEventDelegate:(id<Epos2LFCSendCompleteDelegate>)delegate;
+- (void) setPrintCompleteEventDelegate:(id<Epos2LFCPrintCompleteDelegate>)delegate;
 @end
 
 @interface Epos2HybridPrinterStatusInfo : NSObject
@@ -1524,6 +1581,14 @@ enum Epos2PrinterSettingPrintSpeed : int {
 @property(nonatomic, readonly, copy, getter=getAdditionalSecurityInformation) NSString * additionalSecurityInformation;
 @end
 
+@interface Epos2CATCashDepositResult : NSObject
+@property(nonatomic, readonly, copy, getter=getAccountNumber) NSString * accountNumber;
+@property(nonatomic, readonly, copy, getter=getSlipNumber) NSString * slipNumber;
+@property(nonatomic, readonly, getter=getPaymentCondition) int paymentCondition;
+@property(nonatomic, readonly, getter=getBalance) long balance;
+@property(nonatomic, readonly, copy, getter=getAdditionalSecurityInformation) NSString * additionalSecurityInformation;
+@end
+
 @interface Epos2CAT : NSObject
 - (id) init;
 - (void) dealloc;
@@ -1554,6 +1619,7 @@ enum Epos2PrinterSettingPrintSpeed : int {
 - (int) clearOutput;
 - (int) scanCode;
 - (int) scanData:(long)command string:(NSString *)string;
+- (int) cashDeposit:(int)service amount:(long)amount sequence:(long)sequence;
 
 - (void) setAuthorizeSalesEventDelegate:(id<Epos2CATAuthorizeSalesDelegate>)delegate;
 - (void) setAuthorizeVoidEventDelegate:(id<Epos2CATAuthorizeVoidDelegate>)delegate;
@@ -1567,6 +1633,7 @@ enum Epos2PrinterSettingPrintSpeed : int {
 - (void) setClearOutputEventDelegate:(id<Epos2CATClearOutputDelegate>)delegate;
 - (void) setScanCodeEventDelegate:(id<Epos2CATScanCodeDelegate>)delegate;
 - (void) setScanDataEventDelegate:(id<Epos2CATScanDataDelegate>)delegate;
+- (void) setCashDepositEventDelegate:(id<Epos2CATCashDepositDelegate>)delegate;
 - (void) setConnectionEventDelegate:(id<Epos2ConnectionDelegate>)delegate;
 - (NSString *) getAdmin;
 - (NSString *) getLocation;

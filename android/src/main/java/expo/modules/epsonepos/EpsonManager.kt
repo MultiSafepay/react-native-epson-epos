@@ -218,10 +218,12 @@ class EpsonManager () {
                     val usbManager = context.getSystemService(Context.USB_SERVICE) as UsbManager?
                     if (usbAddress != null && usbManager != null) {
                         item["usb"] = usbAddress
-                        val usbSerialNumber = getUsbSerialNumber(usbManager, usbAddress)
-                        if (usbSerialNumber != null) {
-                            item["usbSerialNumber"] = usbSerialNumber
-                        }
+
+                        // Note: This is not working on Android 11
+                        // val usbSerialNumber = getUsbSerialNumber(usbManager, usbAddress)
+                        // if (usbSerialNumber != null) {
+                        //     item["usbSerialNumber"] = usbSerialNumber
+                        // }
                     }
                     results.add(item)
                 })
@@ -345,11 +347,11 @@ class EpsonManager () {
     }
 
     private fun getUsbSerialNumber(usbManager: UsbManager, usbAddress: String): String? {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            val device = usbManager.deviceList?.get(usbAddress)
-            if (device != null) {
-                return device.serialNumber
-            }
+        val device = usbManager.deviceList?.get(usbAddress)
+        if (device != null) {
+            val hasPermission = usbManager.hasPermission(device)
+            Log.d(SDK_TAG, "getUsbSerialNumber(): hasPermission: $hasPermission")
+            return device.serialNumber
         }
         return null
     }
