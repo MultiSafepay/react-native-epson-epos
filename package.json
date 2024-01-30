@@ -28,9 +28,9 @@
   "author": "Javier Algaba <javier.algaba@multisafepay.com> (https://github.com/Multisafepay)",
   "license": "MIT",
   "homepage": "https://github.com/Multisafepay/react-native-epson-epos#readme",
-  "dependencies": {},
   "devDependencies": {
     "@types/react": "~18.0.27",
+    "@types/react-native": "^0.73.0",
     "expo-module-scripts": "^3.4.0",
     "expo-modules-core": "~1.11.8"
   },
