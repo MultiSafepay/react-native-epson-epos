@@ -10,8 +10,8 @@
   "dependencies": {
     "@react-navigation/native": "^6.1.9",
     "@react-navigation/native-stack": "^6.9.17",
-    "expo": "^50.0.4",
-    "expo-dev-client": "~3.3.7",
+    "expo": "~50.0.5",
+    "expo-dev-client": "~3.3.8",
     "expo-updates": "~0.24.9",
     "react": "18.2.0",
     "react-native": "0.73.2",
