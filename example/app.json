@@ -56,6 +56,9 @@
     "runtimeVersion": "1.0.0",
     "updates": {
       "url": "https://u.expo.dev/47f60327-cfce-4d8f-97ef-add4d1f737df"
-    }
+    },
+    "plugins": [
+      "expo-router"
+    ]
   }
 }

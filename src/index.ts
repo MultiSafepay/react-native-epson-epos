@@ -158,7 +158,9 @@ export async function pairingBluetoothPrinter(): Promise<BluetoothPrinterRespons
       // API Level 31 or higher: BLUETOOTH_SCAN and BLUETOOTH_CONNECT
       const apiLevel = Number(Platform.Version);
       const permissionsSettings: PermissionsSettings[] = [];
-      console.log(apiLevel);
+      if (__DEV__) {
+        console.log({ apiLevel });
+      }
 
       if (apiLevel <= 28) {
         const title = "Bluetooth Permission";
@@ -225,9 +227,7 @@ export async function pairingBluetoothPrinter(): Promise<BluetoothPrinterRespons
         );
       }
 
-      console.log(permissionsSettings);
       for (const permissionSettings of permissionsSettings) {
-        console.log(permissionSettings);
         if (permissionSettings.permission) {
           const status = await PermissionsAndroid.request(
             permissionSettings.permission,
@@ -264,9 +264,7 @@ export async function setValueAsync(value: string) {
   return await ReactNativeEpsonEposModule.setValueAsync(value);
 }
 
-const emitter = new EventEmitter(
-  ReactNativeEpsonEposModule ?? NativeModulesProxy.ReactNativeEpsonEpos
-);
+const emitter = new EventEmitter(ReactNativeEpsonEposModule);
 
 export function addChangeListener(
   listener: (event: ChangeEventPayload) => void
