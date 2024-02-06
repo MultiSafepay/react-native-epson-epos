@@ -3,7 +3,6 @@ package expo.modules.epsonepos
 import android.content.Context
 import android.graphics.Bitmap
 import android.hardware.usb.UsbManager
-import android.os.Build
 import android.util.Log
 import com.epson.epos2.Epos2Exception
 import com.epson.epos2.discovery.Discovery
@@ -259,6 +258,7 @@ class EpsonManager () {
         try {
             if (isConnected) {
                 printer!!.disconnect()
+                printer?.clearCommandBuffer()
             }
         } catch (e: Exception) {
             Log.d(SDK_TAG, "failed to connect: could not disconnect target=$target")
@@ -266,37 +266,60 @@ class EpsonManager () {
 
         try {
             Log.d(SDK_TAG, "Will connect to: $target")
+            isConnected = true // Notify we're connected even if it fails: on connection, we always disconnect
             printer!!.connect(target!!, Printer.PARAM_DEFAULT)
-            isConnected = true
+            printer!!.beginTransaction()
             promise.resolve(true)
         } catch (e: Exception) {
+            var errorMessage: String? = null;
+            if (e is Epos2Exception) {
+                val reason = EpsonManager.getEpos2ExceptionText(e.errorStatus)
+                // Note: If printer is processing such as printing and so on, the disconnect API returns ERR_PROCESSING.
+                if (e.errorStatus == Epos2Exception.ERR_PROCESSING) {
+                    Thread.sleep(disconnectInterval)
+                } else {
+                    errorMessage = "Status: ${e.errorStatus}, Reason: $reason"
+                }
+            } else {
+                errorMessage = e.message
+            }
+            Log.d(SDK_TAG, "failed to connect (target=$target): $errorMessage")
             promise.reject(UnexpectedException(e))
         }
     }
 
     fun disconnectPrinter(promise: Promise) {
         try {
-            printer?.disconnect()
-            isConnected = false
-            Thread.sleep(disconnectInterval)
+            printer?.endTransaction();
+        } catch(e: Exception) {
+            // Do nothing
+        }
 
-            promise.resolve(true)
+        try {
+            // Send and forget: we don't care if it fails disconnecting
+            isConnected = false
+            printer?.disconnect()
+            Thread.sleep(disconnectInterval)
         } catch (e: Exception) {
             var errorMessage: String? = null;
             if (e is Epos2Exception) {
-                //Note: If printer is processing such as printing and so on, the disconnect API returns ERR_PROCESSING.
+                val reason = EpsonManager.getEpos2ExceptionText(e.errorStatus)
+                // Note: If printer is processing such as printing and so on, the disconnect API returns ERR_PROCESSING.
                 if (e.errorStatus == Epos2Exception.ERR_PROCESSING) {
                     Thread.sleep(disconnectInterval)
                 } else {
-                    errorMessage = "Status: ${e.errorStatus}, Reason: $e.message"
+                    errorMessage = "Status: ${e.errorStatus}, Reason: $reason"
                 }
             } else {
                 errorMessage = e.message
             }
 
             Log.d(SDK_TAG, "failed to disconnect (target=$target): $errorMessage")
-            promise.reject(UnexpectedException(e))
         }
+
+        printer?.clearCommandBuffer()
+        printer = null
+        promise.resolve(true)
     }
 
     fun printImage(bitmap: Bitmap, imageWidth: Int, imageHeight: Int, promise: Promise) {
@@ -354,6 +377,32 @@ class EpsonManager () {
             return device.serialNumber
         }
         return null
+    }
+
+    companion object {
+        @JvmStatic
+        fun getEpos2ExceptionText(state: Int): String {
+            var errorText = when (state) {
+                Epos2Exception.ERR_PARAM -> "ERR_PARAM"
+                Epos2Exception.ERR_CONNECT -> "ERR_CONNECT"
+                Epos2Exception.ERR_TIMEOUT -> "ERR_TIMEOUT"
+                Epos2Exception.ERR_MEMORY -> "ERR_MEMORY"
+                Epos2Exception.ERR_ILLEGAL -> "ERR_ILLEGAL"
+                Epos2Exception.ERR_PROCESSING -> "ERR_PROCESSING"
+                Epos2Exception.ERR_NOT_FOUND -> "ERR_NOT_FOUND"
+                Epos2Exception.ERR_IN_USE -> "ERR_IN_USE"
+                Epos2Exception.ERR_TYPE_INVALID -> "ERR_TYPE_INVALID"
+                Epos2Exception.ERR_DISCONNECT -> "ERR_DISCONNECT"
+                Epos2Exception.ERR_ALREADY_OPENED -> "ERR_ALREADY_OPENED"
+                Epos2Exception.ERR_ALREADY_USED -> "ERR_ALREADY_USED"
+                Epos2Exception.ERR_BOX_COUNT_OVER -> "ERR_BOX_COUNT_OVER"
+                Epos2Exception.ERR_BOX_CLIENT_OVER -> "ERR_BOX_CLIENT_OVER"
+                Epos2Exception.ERR_UNSUPPORTED -> "ERR_UNSUPPORTED"
+                Epos2Exception.ERR_FAILURE -> "ERR_FAILURE"
+                else -> String.format("%d", state)
+            }
+            return errorText
+        }
     }
 }
 

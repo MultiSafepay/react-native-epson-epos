@@ -115,12 +115,18 @@ const MainScreen: FC = () => {
   );
 
   const printTestPage = useCallback(async () => {
-    if (selectedPrinter?.target) {
+    if (selectedPrinter?.target && selectedPrinter.name) {
       try {
+        const seriesName = EpsonSDK.getPrinterSeriesByName(
+          selectedPrinter.name as EpsonSDK.PrinterSeriesName
+        );
+
         if (!EpsonSDK.printerIsSetup()) {
           // Printer needs to be setup
           await EpsonSDK.setupPrinter({
             target: selectedPrinter.target,
+            seriesName,
+            language: "LANG_EN",
           });
           if (__DEV__) {
             console.log("🖨️ Printer setup");

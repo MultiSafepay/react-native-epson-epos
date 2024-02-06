@@ -209,6 +209,7 @@ class EpsonManager: NSObject {
     
     if (isConnected) {
       let status = printer.disconnect()
+      printer.clearCommandBuffer()
       if status != EPOS2_SUCCESS.rawValue {
         printDebugLog("🛑 did fail to disconnect printer")
       } else {
@@ -216,13 +217,13 @@ class EpsonManager: NSObject {
       }
     }
     
+    isConnected = true // Notify we're connected even if it fails: on connection, we always disconnect
     let status = printer.connect(target, timeout: Int(timeout))
+    printer.beginTransaction()
     if status != EPOS2_SUCCESS.rawValue {
-      isConnected = false
       printDebugLog("🛑 did fail to connect printer")
       promise.reject(PrinterError.connectPrinter.rawValue, "did fail to connect to printer")
     } else {
-      isConnected = true
       printDebugLog("🟢 did connect printer")
       promise.resolve(true)
     }
@@ -234,17 +235,23 @@ class EpsonManager: NSObject {
       promise.resolve(true)
       return
     }
-    let status = printer.disconnect()
+    printer.endTransaction()
+      
+    // Send and forget: we don't care if it fails disconnecting
+    isConnected = false
     pairingPrinter?.disconnectDevice(bluetoothTarget as String) // Disconnect via Bluetooth
+    let status = printer.disconnect()
     if status != EPOS2_SUCCESS.rawValue {
-      isConnected = true
       printDebugLog("🛑 did fail to disconnect printer")
-      promise.reject(PrinterError.disconnectPrinter.rawValue, "did fail to disconnect printer: \(status)")
+      DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+        printer.disconnect() // Try again
+      }
     } else {
-      isConnected = false
       printDebugLog("🟢 did disconnect printer")
-      promise.resolve(true)
     }
+    
+    self.printer = nil
+    promise.resolve(true)
   }
   
   func printImage(base64: String, imageWidth: Int, imageHeight: Int, promise: Promise) {
