@@ -82,7 +82,11 @@ public class ReactNativeEpsonEposModule: Module {
     }
 
     AsyncFunction("printImage") { (base64: String, imageWidth: Int, imageHeight: Int, promise: Promise) in
-      epsonManager.printImage(base64: base64, imageWidth: imageWidth, imageHeight: imageHeight, promise: promise)
+      epsonManager.printImageAndOrCut(base64: base64, imageWidth: imageWidth, imageHeight: imageHeight, cut: false, promise: promise)
+    }
+      
+    AsyncFunction("printImageAndCut") { (base64: String, imageWidth: Int, imageHeight: Int, promise: Promise) in
+      epsonManager.printImageAndOrCut(base64: base64, imageWidth: imageWidth, imageHeight: imageHeight, cut: true, promise: promise)
     }
 
     AsyncFunction("cutPaper") { (promise: Promise) in

@@ -37,10 +37,26 @@ export function setTimeout(timeout: number) {
   ReactNativeEpsonEposModule.setTimeout(timeout);
 }
 
-export function discoverPrinters(
+export async function discoverPrinters(
   portType: PrinterPortType
 ): Promise<Printer[]> {
-  return ReactNativeEpsonEposModule.discoverPrinters(portType);
+  const promise = (await ReactNativeEpsonEposModule.discoverPrinters(
+    portType
+  )) as Promise<Printer[]>;
+  const printers = await promise;
+  // MAC address should be unique: remove duplicates
+  const uniquePrinters = printers.reduce((acc: Printer[], printer: Printer) => {
+    const existingPrinter = acc.find((p) => p.mac === printer.mac);
+    if (existingPrinter) {
+      if (printer.target && printer.target.startsWith("TCPS:")) {
+        existingPrinter.target = printer.target;
+      }
+    } else {
+      acc.push(printer);
+    }
+    return acc;
+  }, []);
+  return Promise.resolve(uniquePrinters);
 }
 
 export function printerIsConnected(): boolean {
@@ -78,15 +94,25 @@ interface PrintImageProps {
   base64: string;
   width: number;
   height: number;
+  cutPaper: boolean;
 }
 export function printImage({
   base64,
   width,
   height,
+  cutPaper,
 }: PrintImageProps): Promise<void> {
   return new Promise(async (resolve, reject) => {
     try {
-      await ReactNativeEpsonEposModule.printImage(base64, width, height);
+      if (cutPaper) {
+        await ReactNativeEpsonEposModule.printImageAndCut(
+          base64,
+          width,
+          height
+        );
+      } else {
+        await ReactNativeEpsonEposModule.printImage(base64, width, height);
+      }
       sleep(100);
       resolve();
     } catch (e) {

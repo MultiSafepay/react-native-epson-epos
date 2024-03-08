@@ -243,6 +243,7 @@ class EpsonManager () {
             printer!!.setReceiveEventListener(null)
 
             printer = null
+            isConnected = false
         }
 
         try {
@@ -265,9 +266,8 @@ class EpsonManager () {
         }
 
         try {
-            Log.d(SDK_TAG, "Will connect to: $target")
-            isConnected = true // Notify we're connected even if it fails: on connection, we always disconnect
             printer!!.connect(target!!, Printer.PARAM_DEFAULT)
+            isConnected = true
             printer!!.beginTransaction()
             promise.resolve(true)
         } catch (e: Exception) {
@@ -275,11 +275,8 @@ class EpsonManager () {
             if (e is Epos2Exception) {
                 val reason = EpsonManager.getEpos2ExceptionText(e.errorStatus)
                 // Note: If printer is processing such as printing and so on, the disconnect API returns ERR_PROCESSING.
-                if (e.errorStatus == Epos2Exception.ERR_PROCESSING) {
-                    Thread.sleep(disconnectInterval)
-                } else {
-                    errorMessage = "Status: ${e.errorStatus}, Reason: $reason"
-                }
+                errorMessage = "Status: ${e.errorStatus}, Reason: $reason"
+                Thread.sleep(disconnectInterval)
             } else {
                 errorMessage = e.message
             }
@@ -295,9 +292,8 @@ class EpsonManager () {
             // Do nothing
         }
 
+        isConnected = false
         try {
-            // Send and forget: we don't care if it fails disconnecting
-            isConnected = false
             printer?.disconnect()
             Thread.sleep(disconnectInterval)
         } catch (e: Exception) {
@@ -322,14 +318,14 @@ class EpsonManager () {
         promise.resolve(true)
     }
 
-    fun printImage(bitmap: Bitmap, imageWidth: Int, imageHeight: Int, promise: Promise) {
+    fun printImageAndOrCut(bitmap: Bitmap, imageWidth: Int, imageHeight: Int, cut: Boolean, promise: Promise) {
         try {
             printer!!.addPulse(Printer.PARAM_DEFAULT, Printer.PARAM_DEFAULT)
             printer!!.addTextAlign(Printer.ALIGN_CENTER)
             printer!!.addImage(bitmap, 0, 0, imageWidth, imageHeight, Printer.COLOR_1, Printer.MODE_MONO, Printer.HALFTONE_DITHER, Printer.PARAM_DEFAULT.toDouble(), Printer.COMPRESS_AUTO )
-
-            printer!!.addCut(Printer.CUT_FEED);
-
+            if (cut) {
+                printer!!.addCut(Printer.CUT_FEED);
+            }
             printer!!.sendData(Printer.PARAM_DEFAULT)
             // After printing we must clear the bugger
             printer!!.clearCommandBuffer()
@@ -338,6 +334,7 @@ class EpsonManager () {
             Thread.sleep(disconnectInterval)
             promise.resolve(true)
         } catch (e: Exception) {
+            Log.d(SDK_TAG, "failed to printImageAndOrCut")
             printer?.clearCommandBuffer()
             promise.reject(UnexpectedException(e))
         }
@@ -346,10 +343,14 @@ class EpsonManager () {
     fun cutPaper(promise: Promise) {
         try {
             printer!!.addCut(Printer.CUT_FEED)
+            printer!!.sendData(Printer.PARAM_DEFAULT)
+            // After printing we must clear the bugger
+            printer!!.clearCommandBuffer()
         } catch (e: Exception) {
+            Log.d(SDK_TAG, "failed to cut paper")
             printer?.clearCommandBuffer()
-            promise.resolve(true)
         }
+        promise.resolve(true)
     }
 
     private fun stopDiscovery() {
