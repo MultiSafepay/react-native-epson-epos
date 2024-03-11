@@ -19,6 +19,21 @@ const showError = (error: Error) => {
   Alert.alert("Error", error.message);
 };
 
+interface ConnectPrinterRequest {
+  attempts: number;
+}
+const connectPrinter = async ({ attempts }: ConnectPrinterRequest) => {
+  try {
+    await EpsonSDK.connectPrinter();
+  } catch (e) {
+    if (attempts > 0) {
+      await connectPrinter({ attempts: attempts - 1 });
+    } else {
+      throw e;
+    }
+  }
+};
+
 const MainScreen: FC = () => {
   const navigation = useNavigation();
   const [printers, setPrinters] = useState<EpsonSDK.Printer[]>([]);
@@ -121,31 +136,29 @@ const MainScreen: FC = () => {
           selectedPrinter.name as EpsonSDK.PrinterSeriesName
         );
 
-        if (!EpsonSDK.printerIsSetup()) {
-          // Printer needs to be setup
-          await EpsonSDK.setupPrinter({
-            target: selectedPrinter.target,
-            seriesName,
-            language: "LANG_EN",
-          });
-          if (__DEV__) {
-            console.log("🖨️ Printer setup");
-          }
+        // Re-setup printer to ensure it's ready to print
+        await EpsonSDK.setupPrinter({
+          target: selectedPrinter.target,
+          seriesName,
+          language: "LANG_EN",
+        });
+        if (__DEV__) {
+          console.log("🖨️ Printer setup");
         }
 
-        if (!EpsonSDK.printerIsConnected()) {
-          // Printer needs to be connected
-          await EpsonSDK.connectPrinter();
-          if (__DEV__) {
-            console.log("🖨️ Printer connected");
-          }
+        await connectPrinter({ attempts: 3 });
+
+        if (__DEV__) {
+          console.log("🖨️ Printer connected");
         }
 
         await EpsonSDK.printImage({
           base64: Image.base64,
           width: Image.width,
           height: Image.height,
+          cutPaper: true,
         });
+        await EpsonSDK.disconnectPrinter();
       } catch (e) {
         if (__DEV__) {
           console.error(e);

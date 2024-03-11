@@ -102,7 +102,17 @@ class ReactNativeEpsonEposModule : Module() {
       if (bitmap == null) {
         promise.reject(CodedException("Did fail to decode image"))
       }
-      epsonManager.printImage(bitmap, imageWidth, imageHeight, promise)
+      epsonManager.printImageAndOrCut(bitmap, imageWidth, imageHeight, false, promise)
+    }
+
+    AsyncFunction("printImageAndCut") { base64: String, imageWidth: Int, imageHeight: Int, promise: Promise ->
+      val decodedString: ByteArray = Base64.decode(base64, Base64.DEFAULT)
+      val bitmap = BitmapFactory.decodeByteArray(decodedString, 0, decodedString.size)
+
+      if (bitmap == null) {
+        promise.reject(CodedException("Did fail to decode image"))
+      }
+      epsonManager.printImageAndOrCut(bitmap, imageWidth, imageHeight, true, promise)
     }
 
     AsyncFunction("cutPaper") { promise: Promise ->

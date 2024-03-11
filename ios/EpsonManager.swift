@@ -194,6 +194,7 @@ class EpsonManager: NSObject {
       printer.setReceiveEventDelegate(nil)
     }
     self.printer = nil
+    self.isConnected = false
     
     printer = Epos2Printer(printerSeries: Int32(series), lang: Int32(lang))
     self.target = target
@@ -217,14 +218,14 @@ class EpsonManager: NSObject {
       }
     }
     
-    isConnected = true // Notify we're connected even if it fails: on connection, we always disconnect
     let status = printer.connect(target, timeout: Int(timeout))
-    printer.beginTransaction()
     if status != EPOS2_SUCCESS.rawValue {
       printDebugLog("🛑 did fail to connect printer")
       promise.reject(PrinterError.connectPrinter.rawValue, "did fail to connect to printer")
     } else {
       printDebugLog("🟢 did connect printer")
+      isConnected = true // Notify we're connected even if it fails: on connection, we always disconnect
+      printer.beginTransaction()
       promise.resolve(true)
     }
   }
@@ -237,7 +238,6 @@ class EpsonManager: NSObject {
     }
     printer.endTransaction()
       
-    // Send and forget: we don't care if it fails disconnecting
     isConnected = false
     pairingPrinter?.disconnectDevice(bluetoothTarget as String) // Disconnect via Bluetooth
     let status = printer.disconnect()
@@ -249,12 +249,13 @@ class EpsonManager: NSObject {
     } else {
       printDebugLog("🟢 did disconnect printer")
     }
-    
+      
+    printer.clearCommandBuffer()
     self.printer = nil
     promise.resolve(true)
   }
   
-  func printImage(base64: String, imageWidth: Int, imageHeight: Int, promise: Promise) {
+    func printImageAndOrCut(base64: String, imageWidth: Int, imageHeight: Int, cut: Bool, promise: Promise) {
     guard let printer = printer else {
       promise.reject(PrinterError.notFound.rawValue, "did fail to print image: printer not found")
       return
@@ -284,10 +285,12 @@ class EpsonManager: NSObject {
                              halftone: EPOS2_PARAM_DEFAULT,
                              brightness: Double(EPOS2_PARAM_DEFAULT),
                              compress: EPOS2_PARAM_DEFAULT)
-    printer.addCut(EPOS2_CUT_FEED.rawValue)
+    if cut {
+      printer.addCut(EPOS2_CUT_FEED.rawValue)
+    }
     printer.sendData(Int(EPOS2_PARAM_DEFAULT))
     
-    // After printing we must clear the bugger
+    // After printing we must clear the buffer
     printer.clearCommandBuffer()
     
     // Add a delay to prevent potential issues
@@ -305,6 +308,7 @@ class EpsonManager: NSObject {
   
   func cutPaper(promise: Promise) {
     printer?.addCut(EPOS2_CUT_FEED.rawValue)
+    printer?.sendData(Int(EPOS2_PARAM_DEFAULT))
     printer?.clearCommandBuffer()
     promise.resolve(true)
   }
