@@ -1,8 +1,4 @@
-import {
-  NativeModulesProxy,
-  EventEmitter,
-  Subscription,
-} from "expo-modules-core";
+import { EventEmitter, Subscription } from "expo-modules-core";
 import { Platform, PermissionsAndroid, Permission } from "react-native";
 
 import {
@@ -18,10 +14,6 @@ import { PRINTER_SERIES } from "./constants";
 import { getPrinterLanguage, getPrinterSeriesByName, sleep } from "./utils";
 export type { PrinterPortType, PrinterLanguage, PrinterSeriesName };
 export { getPrinterSeriesByName, getPrinterLanguage };
-
-export function hello(): string {
-  return ReactNativeEpsonEposModule.hello();
-}
 
 export interface Printer {
   name?: string;
@@ -80,49 +72,6 @@ export function setupPrinter({
   const series = PRINTER_SERIES[seriesName ?? "SERIES_TM_T20"];
   const lang = getPrinterLanguage(language ?? "LANG_EN");
   return ReactNativeEpsonEposModule.setupPrinter(target, series, lang);
-}
-
-export function connectPrinter(): Promise<void> {
-  return ReactNativeEpsonEposModule.connectPrinter();
-}
-
-export function disconnectPrinter(): Promise<void> {
-  return ReactNativeEpsonEposModule.disconnectPrinter();
-}
-
-interface PrintImageProps {
-  base64: string;
-  width: number;
-  height: number;
-  cutPaper: boolean;
-}
-export function printImage({
-  base64,
-  width,
-  height,
-  cutPaper,
-}: PrintImageProps): Promise<void> {
-  return new Promise(async (resolve, reject) => {
-    try {
-      if (cutPaper) {
-        await ReactNativeEpsonEposModule.printImageAndCut(
-          base64,
-          width,
-          height
-        );
-      } else {
-        await ReactNativeEpsonEposModule.printImage(base64, width, height);
-      }
-      sleep(100);
-      resolve();
-    } catch (e) {
-      reject(e);
-    }
-  });
-}
-
-export function cutPaper(): Promise<void> {
-  return ReactNativeEpsonEposModule.cutPaper();
 }
 
 type BluetoothStatus =
@@ -303,3 +252,71 @@ export {
   ReactNativeEpsonEposViewProps,
   ChangeEventPayload,
 };
+
+// Low level APIs
+export function addCut(): Promise<void> {
+  return ReactNativeEpsonEposModule.addCut();
+}
+
+export function addFeedLine(line: number): Promise<void> {
+  return ReactNativeEpsonEposModule.addFeedLine(Math.floor(line));
+}
+
+interface AddImageProps {
+  base64: string;
+  width: number;
+  height: number;
+}
+export function addImage({
+  base64,
+  width,
+  height,
+}: AddImageProps): Promise<void> {
+  return ReactNativeEpsonEposModule.addImage(
+    base64,
+    Math.floor(width),
+    Math.floor(height)
+  );
+}
+
+export function addText(text: string): Promise<void> {
+  return ReactNativeEpsonEposModule.addText(text);
+}
+
+export function addTextAlign(
+  textAlign: "left" | "right" | "center"
+): Promise<void> {
+  const align = textAlign === "left" ? 0 : textAlign === "right" ? 2 : 1;
+  return ReactNativeEpsonEposModule.addTextAlign(align);
+}
+
+export function addTextSize(width: number, height: number): Promise<void> {
+  return ReactNativeEpsonEposModule.addTextSize(
+    Math.floor(width),
+    Math.floor(height)
+  );
+}
+
+export function clearBuffer(): Promise<void> {
+  return ReactNativeEpsonEposModule.clearBuffer();
+}
+
+export function beginTransaction(): Promise<void> {
+  return ReactNativeEpsonEposModule.beginTransaction();
+}
+
+export function endTransaction(): Promise<void> {
+  return ReactNativeEpsonEposModule.endTransaction();
+}
+
+export function sendData(): Promise<void> {
+  return ReactNativeEpsonEposModule.sendData();
+}
+
+export function connect(): Promise<void> {
+  return ReactNativeEpsonEposModule.connect();
+}
+
+export function disconnect(): Promise<void> {
+  return ReactNativeEpsonEposModule.disconnect();
+}
