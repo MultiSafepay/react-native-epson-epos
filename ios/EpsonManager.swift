@@ -198,118 +198,8 @@ class EpsonManager: NSObject {
     
     printer = Epos2Printer(printerSeries: Int32(series), lang: Int32(lang))
     self.target = target
+    printer?.setReceiveEventDelegate(self)
     
-    promise.resolve(true)
-  }
-  
-  func connectPrinter(promise: Promise) {
-    guard let printer = printer else {
-      promise.reject(PrinterError.notFound.rawValue, "did fail to connect printer: printer not found")
-      return
-    }
-    
-    if (isConnected) {
-      let status = printer.disconnect()
-      printer.clearCommandBuffer()
-      if status != EPOS2_SUCCESS.rawValue {
-        printDebugLog("🛑 did fail to disconnect printer")
-      } else {
-        printDebugLog("🟢 did disconnect printer")
-      }
-    }
-    
-    let status = printer.connect(target, timeout: Int(timeout))
-    if status != EPOS2_SUCCESS.rawValue {
-      printDebugLog("🛑 did fail to connect printer")
-      promise.reject(PrinterError.connectPrinter.rawValue, "did fail to connect to printer")
-    } else {
-      printDebugLog("🟢 did connect printer")
-      isConnected = true // Notify we're connected even if it fails: on connection, we always disconnect
-      printer.beginTransaction()
-      promise.resolve(true)
-    }
-  }
-  
-  func disconnectPrinter(promise: Promise) {
-    guard let printer = printer else {
-      // Do nothing if we haven't setup a printer yet
-      promise.resolve(true)
-      return
-    }
-    printer.endTransaction()
-      
-    isConnected = false
-    pairingPrinter?.disconnectDevice(bluetoothTarget as String) // Disconnect via Bluetooth
-    let status = printer.disconnect()
-    if status != EPOS2_SUCCESS.rawValue {
-      printDebugLog("🛑 did fail to disconnect printer")
-      DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-        printer.disconnect() // Try again
-      }
-    } else {
-      printDebugLog("🟢 did disconnect printer")
-    }
-      
-    printer.clearCommandBuffer()
-    self.printer = nil
-    promise.resolve(true)
-  }
-  
-    func printImageAndOrCut(base64: String, imageWidth: Int, imageHeight: Int, cut: Bool, promise: Promise) {
-    guard let printer = printer else {
-      promise.reject(PrinterError.notFound.rawValue, "did fail to print image: printer not found")
-      return
-    }
-    
-    guard let image = imageFromBase64(base64) else {
-      promise.reject(PrinterError.notValidImage.rawValue, "did fail to print image: image not valid")
-      return
-    }
-    
-    let imgHeight = image.size.height
-    let imgWidth = image.size.width
-    
-    let size = CGSize(width: CGFloat(imageWidth), height: imgHeight*CGFloat(imageWidth)/imgWidth)
-    guard let scaledImage = scaleImage(image, size: size) else {
-      promise.reject(PrinterError.notValidImage.rawValue, "did fail to print image: failed to resize image")
-      return
-    }
-    
-    let status = printer.add(scaledImage,
-                             x: 0,
-                             y: 0,
-                             width: Int(size.width),
-                             height: Int(size.height),
-                             color: EPOS2_PARAM_DEFAULT,
-                             mode: EPOS2_PARAM_DEFAULT,
-                             halftone: EPOS2_PARAM_DEFAULT,
-                             brightness: Double(EPOS2_PARAM_DEFAULT),
-                             compress: EPOS2_PARAM_DEFAULT)
-    if cut {
-      printer.addCut(EPOS2_CUT_FEED.rawValue)
-    }
-    printer.sendData(Int(EPOS2_PARAM_DEFAULT))
-    
-    // After printing we must clear the buffer
-    printer.clearCommandBuffer()
-    
-    // Add a delay to prevent potential issues
-    let deadline = dispatchTime(fromMilliseconds: Int(disconnectInterval))
-    DispatchQueue.global(qos: .userInitiated).asyncAfter(deadline: deadline, execute: {
-      if status != EPOS2_SUCCESS.rawValue {
-        printDebugLog("🛑 did fail to print image")
-        promise.reject(PrinterError.printImage.rawValue, "did fail to print image")
-      } else {
-        printDebugLog("🟢 did print image")
-        promise.resolve(true)
-      }
-    })
-  }
-  
-  func cutPaper(promise: Promise) {
-    printer?.addCut(EPOS2_CUT_FEED.rawValue)
-    printer?.sendData(Int(EPOS2_PARAM_DEFAULT))
-    printer?.clearCommandBuffer()
     promise.resolve(true)
   }
   
@@ -330,6 +220,196 @@ class EpsonManager: NSObject {
       promise.resolve(bluetoothMessage(code: result))
       break
     }
+  }
+  
+  func addCut(promise: Promise) {
+    guard let printer = printer else {
+      promise.reject(PrinterError.notFound.rawValue, "did fail to cut paper: no printer")
+      return
+    }
+    let result = printer.addCut(EPOS2_CUT_FEED.rawValue)
+    if (result != EPOS2_SUCCESS.rawValue) {
+      promise.reject(PrinterError.cmdAddCut.rawValue, "did fail to cut paper: no printer")
+    }
+    promise.resolve(true)
+  }
+  
+  func addFeedLine(line: Int, promise: Promise) {
+    guard let printer = printer else {
+      promise.reject(PrinterError.notFound.rawValue, "did fail to add feed line: no printer")
+      return
+    }
+    let result = printer.addFeedLine(line)
+    if (result != EPOS2_SUCCESS.rawValue) {
+      promise.reject(PrinterError.cmdAddFeedLine.rawValue, "did fail to add feed line")
+    }
+    promise.resolve(true)
+  }
+  
+  func addImage(base64: String, imageWidth: Int, imageHeight: Int, promise: Promise) {
+    guard let printer = printer else {
+      promise.reject(PrinterError.notFound.rawValue, "did fail to add image: no printer")
+      return
+    }
+    
+    guard let image = imageFromBase64(base64) else {
+      promise.reject(PrinterError.notValidImage.rawValue, "did fail to add image: image not valid")
+      return
+    }
+    
+    let imgHeight = image.size.height
+    let imgWidth = image.size.width
+    
+    let size = CGSize(width: CGFloat(imageWidth), height: imgHeight*CGFloat(imageWidth)/imgWidth)
+    guard let scaledImage = scaleImage(image, size: size) else {
+      promise.reject(PrinterError.notValidImage.rawValue, "did fail to add image: failed to resize image")
+      return
+    }
+    
+    let result = printer.add(scaledImage,
+                             x: 0,
+                             y: 0,
+                             width: Int(size.width),
+                             height: Int(size.height),
+                             color: EPOS2_PARAM_DEFAULT,
+                             mode: EPOS2_PARAM_DEFAULT,
+                             halftone: EPOS2_PARAM_DEFAULT,
+                             brightness: Double(EPOS2_PARAM_DEFAULT),
+                             compress: EPOS2_PARAM_DEFAULT)
+    if (result != EPOS2_SUCCESS.rawValue) {
+      promise.reject(PrinterError.cmdAddImage.rawValue, "did fail to add image")
+    }
+    promise.resolve(true)
+  }
+  
+  func addText(text: String, promise: Promise) {
+    guard let printer = printer else {
+      promise.reject(PrinterError.notFound.rawValue, "did fail to add text: no printer")
+      return
+    }
+    let result = printer.addText(text)
+    if (result != EPOS2_SUCCESS.rawValue) {
+      promise.reject(PrinterError.cmdAddText.rawValue, "did fail to add text: no printer")
+    }
+    promise.resolve(true)
+  }
+  
+  func addTextAlign(align: Int, promise: Promise) {
+    guard let printer = printer else {
+      promise.reject(PrinterError.notFound.rawValue, "did fail to add text align: no printer")
+      return
+    }
+    
+    // 0: left, 1: center, 2: right
+    let textAlign = align == 0 ? EPOS2_ALIGN_LEFT : align == 1 ? EPOS2_ALIGN_CENTER : EPOS2_ALIGN_RIGHT
+    
+    let result = printer.addTextAlign(textAlign.rawValue)
+    if (result != EPOS2_SUCCESS.rawValue) {
+      promise.reject(PrinterError.cmdAddTextAlign.rawValue, "did fail to add text align")
+    }
+    promise.resolve(true)
+  }
+  
+  func addTextSize(width: Int, height: Int, promise: Promise) {
+    guard let printer = printer else {
+      promise.reject(PrinterError.notFound.rawValue, "did fail to add text size: no printer")
+      return
+    }
+    
+    let result = printer.addTextSize(width, height: height)
+    if (result != EPOS2_SUCCESS.rawValue) {
+      promise.reject(PrinterError.cmdAddTextSize.rawValue, "did fail to add text size")
+    }
+    promise.resolve(true)
+  }
+  
+  func clearBuffer(promise: Promise) {
+    guard let printer = printer else {
+      promise.reject(PrinterError.notFound.rawValue, "did fail to clear the buffer: no printer")
+      return
+    }
+    
+    let result = printer.clearCommandBuffer()
+    if (result != EPOS2_SUCCESS.rawValue) {
+      promise.reject(PrinterError.cmdClearBuffer.rawValue, "did fail to clear the buffer")
+    }
+    promise.resolve(true)
+  }
+  
+  func beginTransaction(promise: Promise) {
+    guard let printer = printer else {
+      promise.reject(PrinterError.notFound.rawValue, "did fail to begin transaction: no printer")
+      return
+    }
+    
+    let result = printer.beginTransaction()
+    if (result != EPOS2_SUCCESS.rawValue) {
+      promise.reject(PrinterError.cmdBeginTransaction.rawValue, "did fail to begin transaction")
+    }
+    promise.resolve(true)
+  }
+  
+  func endTransaction(promise: Promise) {
+    guard let printer = printer else {
+      promise.reject(PrinterError.notFound.rawValue, "did fail to end transaction: no printer")
+      return
+    }
+    
+    let result = printer.endTransaction()
+    if (result != EPOS2_SUCCESS.rawValue) {
+      promise.reject(PrinterError.cmdEndTransaction.rawValue, "did fail to end transaction")
+    }
+    promise.resolve(true)
+  }
+  
+  func sendData(promise: Promise) {
+    guard let printer = printer else {
+      promise.reject(PrinterError.notFound.rawValue, "did fail to send data: no printer")
+      return
+    }
+    
+    let result = printer.sendData(Int(EPOS2_PARAM_DEFAULT))
+    if (result != EPOS2_SUCCESS.rawValue) {
+      promise.reject(PrinterError.cmdSendData.rawValue, "did fail to send data")
+    }
+    promise.resolve(true)
+  }
+  
+  func connect(promise: Promise) {
+    guard let printer = printer else {
+      promise.reject(PrinterError.notFound.rawValue, "did fail connect: no printer")
+      return
+    }
+    
+    guard let target = target else {
+      promise.reject(PrinterError.missingTarget.rawValue, "target not found")
+      return
+    }
+    
+    let result = printer.connect(target, timeout: Int(timeout))
+    if (result != EPOS2_SUCCESS.rawValue) {
+      isConnected = false
+      printDebugLog("did fail to connect: \(result)")
+      promise.reject(PrinterError.cmdConnect.rawValue, "did fail to connect")
+    }
+    isConnected = true
+    promise.resolve(true)
+  }
+  
+  func disconnect(promise: Promise) {
+    guard let printer = printer else {
+      // Do nothing if we haven't setup a printer yet
+      promise.resolve(true)
+      return
+    }
+    
+    let result = printer.disconnect()
+    if (result != EPOS2_SUCCESS.rawValue) {
+      isConnected = false
+      promise.reject(PrinterError.cmdDisconnect.rawValue, "did fail to disconnect")
+    }
+    isConnected = true
+    promise.resolve(true)
   }
   
 }
@@ -379,6 +459,12 @@ private extension EpsonManager {
 extension EpsonManager: Epos2DiscoveryDelegate {
   func onDiscovery(_ deviceInfo: Epos2DeviceInfo!) {
     printerList.append(deviceInfo)
+  }
+}
+
+extension EpsonManager: Epos2PtrReceiveDelegate {
+  func onPtrReceive(_ printerObj: Epos2Printer!, code: Int32, status: Epos2PrinterStatusInfo!, printJobId: String!) {
+    printDebugLog("onPtrReceive(): code=\(code), status: \(String(describing: status)), printJobId: \(String(describing: printJobId))")
   }
 }
 

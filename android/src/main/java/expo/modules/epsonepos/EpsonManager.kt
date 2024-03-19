@@ -9,7 +9,10 @@ import com.epson.epos2.discovery.Discovery
 import com.epson.epos2.discovery.DiscoveryListener
 import com.epson.epos2.discovery.FilterOption
 import com.epson.epos2.printer.Printer
+import com.epson.epos2.printer.PrinterStatusInfo
+import com.epson.epos2.printer.ReceiveListener
 import expo.modules.kotlin.Promise
+import expo.modules.kotlin.exception.CodedException
 import expo.modules.kotlin.exception.UnexpectedException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -34,7 +37,25 @@ internal object PrintingCommands {
     const val COMMAND_ADD_PULSE = 13
 }
 
-class EpsonManager () {
+enum class PrinterError(val error: String) {
+    NOT_FOUND("ERROR_PRINTER_NOT_FOUND"),
+    MISSING_TARGET("ERROR_MISSING_TARGET"),
+    CMD_ADD_CUT("ERROR_COMMAND_ADD_CUT"),
+    CMD_ADD_FEED_LINE("ERROR_COMMAND_ADD_FEED_LINE"),
+    CMD_ADD_IMAGE("ERROR_COMMAND_ADD_IMAGE"),
+    CMD_ADD_TEXT("ERROR_COMMAND_ADD_TEXT"),
+    CMD_ADD_TEXT_ALIGN("ERROR_COMMAND_ADD_TEXT_ALIGN"),
+    CMD_ADD_TEXT_SIZE("ERROR_COMMAND_ADD_TEXT_SIZE"),
+    CMD_CLEAR_BUFFER("ERROR_COMMAND_CLEAR_BUFFER"),
+    CMD_BEGIN_TRANSACTION("ERROR_COMMAND_BEGIN_TRANSACTION"),
+    CMD_END_TRANSACTION("ERROR_COMMAND_END_TRANSACTION"),
+    CMD_SEND_DATA("ERROR_COMMAND_SEND_DATA"),
+    CMD_CONNECT("ERROR_COMMAND_CONNECT"),
+}
+
+class PrinterException(errorCode: PrinterError) : CodedException(errorCode.name)
+
+class EpsonManager: ReceiveListener {
     private var printer: Printer? = null
     private var isConnected: Boolean = false
     private val filterOption: FilterOption = FilterOption()
@@ -194,18 +215,18 @@ class EpsonManager () {
             }
         }
 
-        Log.d(SDK_TAG, "startDiscovery: "+portType+" filterOption.portType="+filterOption.portType.toString())
+        printDebugLog("startDiscovery: "+portType+" filterOption.portType="+filterOption.portType.toString())
 
         try {
             stopDiscovery()
         } catch (e: Exception) {
-            Log.d(SDK_TAG, "something failed: "+e.message)
+            printDebugLog("something failed: "+e.message)
         }
 
         val scope = CoroutineScope(Dispatchers.IO)
         scope.launch {
             try {
-                Log.d(SDK_TAG, "🟢 did start discovery process")
+                printDebugLog("🟢 did start discovery process")
                 Discovery.start(context, filterOption, DiscoveryListener { deviceInfo ->
                     val item = HashMap<String, String>()
                     item["name"] = deviceInfo.deviceName
@@ -227,7 +248,7 @@ class EpsonManager () {
                     results.add(item)
                 })
             } catch (e: Exception) {
-                Log.d(SDK_TAG, "🛑 did fail to start discovery process: "+e.message)
+                printDebugLog("🛑 did fail to start discovery process: "+e.message)
                 cancel("did fail to start discovery", e)
             }
         }
@@ -249,116 +270,190 @@ class EpsonManager () {
         try {
             printer = Printer(series, lang, context)
             this.target = target
+            printer!!.setReceiveEventListener(this)
             promise.resolve(true)
         } catch (e: Exception) {
             promise.reject(UnexpectedException(e))
         }
     }
 
-    fun connectPrinter(promise: Promise) {
+    fun beginTransaction(promise: Promise) {
         try {
-            if (isConnected) {
-                printer!!.disconnect()
-                printer?.clearCommandBuffer()
-            }
-        } catch (e: Exception) {
-            Log.d(SDK_TAG, "failed to connect: could not disconnect target=$target")
-        }
-
-        try {
-            printer!!.connect(target!!, Printer.PARAM_DEFAULT)
-            isConnected = true
             printer!!.beginTransaction()
             promise.resolve(true)
         } catch (e: Exception) {
-            var errorMessage: String? = null;
-            if (e is Epos2Exception) {
-                val reason = EpsonManager.getEpos2ExceptionText(e.errorStatus)
-                // Note: If printer is processing such as printing and so on, the disconnect API returns ERR_PROCESSING.
-                errorMessage = "Status: ${e.errorStatus}, Reason: $reason"
-                Thread.sleep(disconnectInterval)
-            } else {
-                errorMessage = e.message
-            }
-            Log.d(SDK_TAG, "failed to connect (target=$target): $errorMessage")
-            promise.reject(UnexpectedException(e))
+            printDebugLog("failed to begin transaction")
+            printer?.clearCommandBuffer()
+            promise.reject(PrinterException(PrinterError.CMD_BEGIN_TRANSACTION))
         }
     }
 
-    fun disconnectPrinter(promise: Promise) {
+    fun endTransaction(promise: Promise) {
         try {
-            printer?.endTransaction();
-        } catch(e: Exception) {
-            // Do nothing
-        }
-
-        isConnected = false
-        try {
-            printer?.disconnect()
-            Thread.sleep(disconnectInterval)
-        } catch (e: Exception) {
-            var errorMessage: String? = null;
-            if (e is Epos2Exception) {
-                val reason = EpsonManager.getEpos2ExceptionText(e.errorStatus)
-                // Note: If printer is processing such as printing and so on, the disconnect API returns ERR_PROCESSING.
-                if (e.errorStatus == Epos2Exception.ERR_PROCESSING) {
-                    Thread.sleep(disconnectInterval)
-                } else {
-                    errorMessage = "Status: ${e.errorStatus}, Reason: $reason"
-                }
-            } else {
-                errorMessage = e.message
-            }
-
-            Log.d(SDK_TAG, "failed to disconnect (target=$target): $errorMessage")
-        }
-
-        printer?.clearCommandBuffer()
-        printer = null
-        promise.resolve(true)
-    }
-
-    fun printImageAndOrCut(bitmap: Bitmap, imageWidth: Int, imageHeight: Int, cut: Boolean, promise: Promise) {
-        try {
-            printer!!.addPulse(Printer.PARAM_DEFAULT, Printer.PARAM_DEFAULT)
-            printer!!.addTextAlign(Printer.ALIGN_CENTER)
-            printer!!.addImage(bitmap, 0, 0, imageWidth, imageHeight, Printer.COLOR_1, Printer.MODE_MONO, Printer.HALFTONE_DITHER, Printer.PARAM_DEFAULT.toDouble(), Printer.COMPRESS_AUTO )
-            if (cut) {
-                printer!!.addCut(Printer.CUT_FEED);
-            }
-            printer!!.sendData(Printer.PARAM_DEFAULT)
-            // After printing we must clear the bugger
-            printer!!.clearCommandBuffer()
-
-            // Add a delay to prevent potential issues
-            Thread.sleep(disconnectInterval)
+            printer!!.endTransaction()
             promise.resolve(true)
         } catch (e: Exception) {
-            Log.d(SDK_TAG, "failed to printImageAndOrCut")
+            printDebugLog("failed to end transaction")
             printer?.clearCommandBuffer()
-            promise.reject(UnexpectedException(e))
+            promise.reject(PrinterException(PrinterError.CMD_END_TRANSACTION))
         }
     }
 
-    fun cutPaper(promise: Promise) {
+    fun addCut(promise: Promise) {
         try {
             printer!!.addCut(Printer.CUT_FEED)
-            printer!!.sendData(Printer.PARAM_DEFAULT)
-            // After printing we must clear the bugger
-            printer!!.clearCommandBuffer()
+            promise.resolve(true)
         } catch (e: Exception) {
-            Log.d(SDK_TAG, "failed to cut paper")
+            printDebugLog("failed to cut paper")
             printer?.clearCommandBuffer()
+            promise.reject(PrinterException(PrinterError.CMD_ADD_CUT))
         }
-        promise.resolve(true)
+    }
+
+    fun addFeedLine(line: Int, promise: Promise) {
+        try {
+            printer!!.addFeedLine(line)
+            promise.resolve(true)
+        } catch (e: Exception) {
+            printDebugLog("failed to add feed line")
+            printer?.clearCommandBuffer()
+            promise.reject(PrinterException(PrinterError.CMD_ADD_FEED_LINE))
+        }
+    }
+
+    fun addTextSize(width: Int, height: Int, promise: Promise) {
+        try {
+            printer!!.addTextSize(width, height)
+            promise.resolve(true)
+        } catch (e: Exception) {
+            printDebugLog("failed to add text size")
+            printer?.clearCommandBuffer()
+            promise.reject(PrinterException(PrinterError.CMD_ADD_TEXT_SIZE))
+        }
+    }
+
+    fun addImage(bitmap: Bitmap, imageWidth: Int, imageHeight: Int, promise: Promise) {
+        try {
+            printer!!.addImage(bitmap, 0, 0, imageWidth, imageHeight, Printer.COLOR_1, Printer.MODE_MONO, Printer.HALFTONE_DITHER, Printer.PARAM_DEFAULT.toDouble(), Printer.COMPRESS_AUTO )
+            promise.resolve(true)
+        } catch (e: Exception) {
+            printDebugLog("failed to add image")
+            printer?.clearCommandBuffer()
+            promise.reject(PrinterException(PrinterError.CMD_ADD_IMAGE))
+        }
+    }
+
+    fun addText(text: String, promise: Promise) {
+        try {
+            printer!!.addText(text)
+            promise.resolve(true)
+        } catch (e: Exception) {
+            printDebugLog("failed to add text")
+            printer?.clearCommandBuffer()
+            promise.reject(PrinterException(PrinterError.CMD_ADD_TEXT))
+        }
+    }
+
+    fun addTextAlign(align: Int, promise: Promise) {
+        try {
+            printer!!.addTextAlign(align)
+            promise.resolve(true)
+        } catch (e: Exception) {
+            printDebugLog("failed to add text align")
+            printer?.clearCommandBuffer()
+            promise.reject(PrinterException(PrinterError.CMD_ADD_TEXT_ALIGN))
+        }
+    }
+
+    fun clearBuffer(promise: Promise) {
+        try {
+            printer!!.clearCommandBuffer()
+            promise.resolve(true)
+        } catch (e: Exception) {
+            printDebugLog("failed to clear buffer")
+            promise.reject(PrinterException(PrinterError.CMD_CLEAR_BUFFER))
+        }
+    }
+
+    fun sendData(promise: Promise) {
+        try {
+            printer!!.sendData(Printer.PARAM_DEFAULT)
+            promise.resolve(true)
+        } catch (e: Exception) {
+            printDebugLog("failed to clear buffer")
+            promise.reject(PrinterException(PrinterError.CMD_SEND_DATA))
+        }
+    }
+
+    fun connect(promise: Promise) {
+        if (printer == null) {
+            promise.reject(PrinterException(PrinterError.NOT_FOUND))
+            return
+        }
+
+        if (target == null) {
+            promise.reject(PrinterException(PrinterError.MISSING_TARGET))
+            return
+        }
+
+        try {
+            printer!!.connect(target, timeout.toInt())
+            isConnected = true
+            promise.resolve()
+        } catch (e: Exception) {
+            printDebugLog("failed to connect printer")
+            if (e is Epos2Exception) {
+                if (e.errorStatus == Epos2Exception.ERR_PROCESSING) {
+                    // If the printer is processing, wait for a while before retrying
+                    Thread.sleep(disconnectInterval)
+                } else {
+                    // If the exception is not ERR_PROCESSING, continue in the loop without delay
+                }
+                val reason = getEpos2ExceptionText(e.errorStatus)
+                printDebugLog("reason: ${reason} - ${e.errorStatus}")
+                promise.reject(CodedException("$e.errorStatus"))
+            } else {
+                promise.reject(PrinterException(PrinterError.CMD_CONNECT))
+            }
+
+        }
+    }
+
+    fun disconnect(promise: Promise) {
+        if (printer == null) {
+            // Do nothing if we haven't setup a printer yet
+            promise.resolve()
+            return
+        }
+
+        var disconnected = false
+        while (!disconnected) {
+            try {
+                printer!!.disconnect()
+                disconnected = true
+            } catch (e: Epos2Exception) {
+                if (e.errorStatus == Epos2Exception.ERR_PROCESSING) {
+                    // If the printer is processing, wait for a while before retrying
+                    Thread.sleep(disconnectInterval)
+                } else {
+                    // If the exception is not ERR_PROCESSING, continue in the loop without delay
+                }
+            } catch (e: Exception) {
+                // If any other exception occurs, reject the promise and break the loop
+                promise.reject(UnexpectedException(e))
+                break
+            }
+        }
+        promise.resolve()
+        isConnected = false
     }
 
     private fun stopDiscovery() {
         try {
             Discovery.stop()
-            Log.d(SDK_TAG, "🟢 did stop discovery process")
+            printDebugLog("🟢 did stop discovery process")
         } catch (e: Epos2Exception) {
-            Log.d(SDK_TAG, "🛑 did fail to stop discovery process: "+e.message)
+            printDebugLog("🛑 did fail to stop discovery process: "+e.message)
         }
     }
 
@@ -374,13 +469,24 @@ class EpsonManager () {
         val device = usbManager.deviceList?.get(usbAddress)
         if (device != null) {
             val hasPermission = usbManager.hasPermission(device)
-            Log.d(SDK_TAG, "getUsbSerialNumber(): hasPermission: $hasPermission")
+            printDebugLog("getUsbSerialNumber(): hasPermission: $hasPermission")
             return device.serialNumber
         }
         return null
     }
 
+    override fun onPtrReceive(printerObj: Printer?, code: Int, status: PrinterStatusInfo?, printJobId: String?) {
+        printDebugLog("onPtrReceive(): code=$code, status: ${EpsonManager.makeErrorMessage(status)}, printJobId: $printJobId")
+    }
+
     companion object {
+        @JvmStatic
+        fun printDebugLog(message: String) {
+            if (BuildConfig.DEBUG) {
+                Log.d(SDK_TAG, message)
+            }
+        }
+
         @JvmStatic
         fun getEpos2ExceptionText(state: Int): String {
             var errorText = when (state) {
@@ -403,6 +509,63 @@ class EpsonManager () {
                 else -> String.format("%d", state)
             }
             return errorText
+        }
+
+        @JvmStatic
+        private fun makeErrorMessage(status: PrinterStatusInfo?): String {
+            var msg = ""
+            if (status != null) {
+                if (status.online == Printer.FALSE) {
+                    msg += "Printer is offline"
+                }
+                if (status.connection == Printer.FALSE) {
+                    msg += "Please check the connection of the printer and the mobile terminal.\\nConnection get lost.\\n"
+                }
+                if (status.coverOpen == Printer.TRUE) {
+                    msg += "Please close roll paper cover.\\n"
+                }
+                if (status.paper == Printer.PAPER_EMPTY) {
+                    msg += "Please check roll paper.\\n"
+                }
+                if (status.paperFeed == Printer.TRUE || status.panelSwitch == Printer.SWITCH_ON) {
+                    msg += "Please release a paper feed switch.\\n"
+                }
+                if (status.errorStatus == Printer.MECHANICAL_ERR || status.errorStatus == Printer.AUTOCUTTER_ERR) {
+                    msg += "Please remove jammed paper and close roll paper cover.\\nRemove any jammed paper or foreign substances in the printer, and then turn the printer off and turn the printer on again.\\n"
+                    msg += "Then, If the printer doesn\\'t recover from error, please cycle the power switch.\\n"
+                }
+                if (status.errorStatus == Printer.UNRECOVER_ERR) {
+                    msg += "Please cycle the power switch of the printer.\\nIf same errors occurred even power cycled, the printer may out of order."
+                }
+                if (status.errorStatus == Printer.AUTORECOVER_ERR) {
+                    if (status.autoRecoverError == Printer.HEAD_OVERHEAT) {
+                        msg += "Please wait until error LED of the printer turns off. \\n"
+                        msg += "Print head of printer is hot.\\n"
+                    }
+                    if (status.autoRecoverError == Printer.MOTOR_OVERHEAT) {
+                        msg += "Please wait until error LED of the printer turns off. \\n"
+                        msg += "Motor Driver IC of printer is hot.\\n"
+                    }
+                    if (status.autoRecoverError == Printer.BATTERY_OVERHEAT) {
+                        msg += "Please wait until error LED of the printer turns off. \\n"
+                        msg += "Battery of printer is hot.\\n"
+                    }
+                    if (status.autoRecoverError == Printer.WRONG_PAPER) {
+                        msg += "Please set correct roll paper.\\n"
+                    }
+                }
+                if (status.batteryLevel == Printer.BATTERY_LEVEL_0) {
+                    msg += "Please connect AC adapter or change the battery.\\nBattery of printer is almost empty.\\n"
+                }
+                if (status.removalWaiting == Printer.REMOVAL_WAIT_PAPER) {
+                    msg += "Please remove paper.\\n"
+                }
+                if (status.unrecoverError == Printer.HIGH_VOLTAGE_ERR ||
+                        status.unrecoverError == Printer.LOW_VOLTAGE_ERR) {
+                    msg += "Please check the voltage status.\\n"
+                }
+            }
+            return msg
         }
     }
 }

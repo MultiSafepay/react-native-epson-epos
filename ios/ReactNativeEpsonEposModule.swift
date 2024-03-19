@@ -13,18 +13,8 @@ public class ReactNativeEpsonEposModule: Module {
     // The module will be accessible from `requireNativeModule('ReactNativeEpsonEpos')` in JavaScript.
     Name("ReactNativeEpsonEpos")
 
-    // Sets constant properties on the module. Can take a dictionary or a closure that returns a dictionary.
-    Constants([
-      "PI": Double.pi
-    ])
-
     // Defines event names that the module can send to JavaScript.
     Events("onChange")
-
-    // Defines a JavaScript synchronous function that runs the native code on the JavaScript thread.
-    Function("hello") {
-      return "Hello world! 👋"
-    }
 
     // Defines a JavaScript function that always returns a Promise and whose native code
     // is by default dispatched on the different thread than the JavaScript runtime runs on.
@@ -72,29 +62,95 @@ public class ReactNativeEpsonEposModule: Module {
     AsyncFunction("setupPrinter") { (target: String, series: Int, lang: Int, promise: Promise) in
       epsonManager.setupPrinter(target: target, series: series, lang: lang, promise: promise)
     }
-
-    AsyncFunction("connectPrinter") { (promise: Promise) in
-      epsonManager.connectPrinter(promise: promise)
-    }
-
-    AsyncFunction("disconnectPrinter") { (promise: Promise) in
-      epsonManager.disconnectPrinter(promise: promise)
-    }
-
-    AsyncFunction("printImage") { (base64: String, imageWidth: Int, imageHeight: Int, promise: Promise) in
-      epsonManager.printImageAndOrCut(base64: base64, imageWidth: imageWidth, imageHeight: imageHeight, cut: false, promise: promise)
-    }
-      
-    AsyncFunction("printImageAndCut") { (base64: String, imageWidth: Int, imageHeight: Int, promise: Promise) in
-      epsonManager.printImageAndOrCut(base64: base64, imageWidth: imageWidth, imageHeight: imageHeight, cut: true, promise: promise)
-    }
-
-    AsyncFunction("cutPaper") { (promise: Promise) in
-      epsonManager.cutPaper(promise: promise)
-    }
     
     AsyncFunction("pairingBluetoothPrinter") { (promise: Promise) in
       epsonManager.pairingBluetoothPrinter(promise: promise)
+    }
+      
+    // Low level API methods
+    
+    /**
+     * This function adds a cut command to the command buffer.
+     */
+    AsyncFunction("addCut") { (promise: Promise) in
+      epsonManager.addCut(promise: promise)
+    }
+    
+    /**
+     * This function adds a feed line command to the command buffer.
+     */
+    AsyncFunction("addFeedLine") { (line: Int, promise: Promise) in
+      epsonManager.addFeedLine(line: line, promise: promise)
+    }
+    
+    /**
+     * This function adds an image command to the command buffer.
+     */
+    AsyncFunction("addImage") { (base64: String, imageWidth: Int, imageHeight: Int, promise: Promise) in
+      epsonManager.addImage(base64: base64, imageWidth: imageWidth, imageHeight: imageHeight, promise: promise)
+    }
+    
+    /**
+     * This function adds a text command to the command buffer.
+     */
+    AsyncFunction("addText") { (text: String, promise: Promise) in
+      epsonManager.addText(text: text, promise: promise)
+    }
+    
+    /**
+     * This function adds a text align command to the command buffer.
+     */
+    AsyncFunction("addTextAlign") { (align: Int, promise: Promise) in
+      epsonManager.addTextAlign(align: align, promise: promise)
+    }
+    
+    /**
+     * This function adds a text size command to the command buffer.
+     */
+    AsyncFunction("addTextSize") { (width: Int, height: Int, promise: Promise) in
+      epsonManager.addTextSize(width: width, height: height, promise: promise)
+    }
+    
+    /**
+     * This function clears the command buffer.
+     */
+    AsyncFunction("clearBuffer") { (promise: Promise) in
+      epsonManager.clearBuffer(promise: promise)
+    }
+    
+    /**
+     * This function begins a transaction.
+     */
+    AsyncFunction("beginTransaction") { (promise: Promise) in
+      epsonManager.beginTransaction(promise: promise)
+    }
+    
+    /**
+     * This function ends a transaction.
+     */
+    AsyncFunction("endTransaction") { (promise: Promise) in
+      epsonManager.endTransaction(promise: promise)
+    }
+    
+    /**
+     * This function sends the data in the command buffer to the printer.
+     */
+    AsyncFunction("sendData") { (promise: Promise) in
+      epsonManager.sendData(promise: promise)
+    }
+    
+    /**
+     * This function connects to the printer.
+     */
+    AsyncFunction("connect") { (promise: Promise) in
+      epsonManager.connect(promise: promise)
+    }
+    
+    /**
+     * This function disconnects from the printer.
+     */
+    AsyncFunction("disconnect") { (promise: Promise) in
+      epsonManager.disconnect(promise: promise)
     }
   }
 }

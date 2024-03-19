@@ -24,6 +24,19 @@ enum PrinterError: String {
   case printImage = "ERROR_PRINT_IMAGE"
   case connectBluetooth = "ERROR_CONNECT_BLUETOOTH"
   case startBluetooth = "ERROR_START_BLUETOOTH"
+  case missingTarget = "ERROR_MISSING_TARGET"
+  case cmdAddCut = "ERROR_COMMAND_ADD_CUT"
+  case cmdAddFeedLine = "ERROR_COMMAND_ADD_FEED_LINE"
+  case cmdAddImage = "ERROR_COMMAND_ADD_IMAGE"
+  case cmdAddText = "ERROR_COMMAND_ADD_TEXT"
+  case cmdAddTextAlign = "ERROR_COMMAND_ADD_TEXT_ALIGN"
+  case cmdAddTextSize = "ERROR_COMMAND_ADD_TEXT_SIZE"
+  case cmdClearBuffer = "ERROR_COMMAND_CLEAR_BUFFER"
+  case cmdBeginTransaction = "ERROR_COMMAND_BEGIN_TRANSACTION"
+  case cmdEndTransaction = "ERROR_COMMAND_END_TRANSACTION"
+  case cmdSendData = "ERROR_COMMAND_SEND_DATA"
+  case cmdConnect = "ERROR_COMMAND_CONNECT"
+  case cmdDisconnect = "ERROR_COMMAND_DISCONNECT"
 }
 
 enum PrinterPortType: String {
