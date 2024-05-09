@@ -183,7 +183,7 @@ const MainScreen: FC = () => {
         showError(e as Error);
 
         // await EpsonSDK.clearBuffer();
-        await EpsonSDK.disconnect();
+        // await EpsonSDK.disconnect();
 
         const message = (e as Error | undefined)?.message;
         switch (message) {
