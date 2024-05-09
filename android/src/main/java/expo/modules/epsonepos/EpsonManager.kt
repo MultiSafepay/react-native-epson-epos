@@ -402,6 +402,7 @@ class EpsonManager: ReceiveListener {
             promise.resolve()
         } catch (e: Exception) {
             printDebugLog("failed to connect printer")
+            isConnected = false
             if (e is Epos2Exception) {
                 if (e.errorStatus == Epos2Exception.ERR_PROCESSING) {
                     // If the printer is processing, wait for a while before retrying
@@ -429,6 +430,7 @@ class EpsonManager: ReceiveListener {
         var disconnected = false
         while (!disconnected) {
             try {
+                isConnected = false
                 printer!!.disconnect()
                 disconnected = true
             } catch (e: Epos2Exception) {
@@ -441,11 +443,10 @@ class EpsonManager: ReceiveListener {
             } catch (e: Exception) {
                 // If any other exception occurs, reject the promise and break the loop
                 promise.reject(UnexpectedException(e))
-                break
+                return
             }
         }
         promise.resolve()
-        isConnected = false
     }
 
     private fun stopDiscovery() {
