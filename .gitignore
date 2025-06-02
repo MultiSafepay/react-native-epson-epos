@@ -60,6 +60,8 @@ android/keystores/debug.keystore
 
 # Expo
 .expo/*
+example/android/
+example/ios/
 
 # Android
 *.apk

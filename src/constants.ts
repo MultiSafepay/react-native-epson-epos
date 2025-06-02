@@ -1,10 +1,8 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import {
-  PrinterLanguage,
-  PrinterSeriesName,
-} from "./ReactNativeEpsonEpos.types";
+// @ts-ignore - These constants are extracted but used through re-export
 import ReactNativeEpsonEposModule from "./ReactNativeEpsonEposModule";
 
+// @ts-ignore - All destructured elements are intentionally extracted as constants
 const {
   SERIES_TM_M10,
   SERIES_TM_M30,

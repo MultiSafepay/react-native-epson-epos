@@ -1,6 +1,11 @@
 import { EventEmitter } from "expo-modules-core";
 
-const emitter = new EventEmitter({} as any);
+// Define the events map for the web EventEmitter
+type WebEpsonEvents = {
+  onChange: (event: { value: string }) => void;
+};
+
+const emitter = new EventEmitter<WebEpsonEvents>();
 
 export default {
   PI: Math.PI,
