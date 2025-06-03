@@ -30,9 +30,7 @@
   "homepage": "https://github.com/Multisafepay/react-native-epson-epos#readme",
   "devDependencies": {
     "@types/react": "~18.3.23",
-    "expo-module-scripts": "^4.0.4",
-    "expo": "~52.0.0",
-    "react-native": "~0.76.0"
+    "expo-module-scripts": "^4.0.4"
   },
   "peerDependencies": {
     "expo": "*",

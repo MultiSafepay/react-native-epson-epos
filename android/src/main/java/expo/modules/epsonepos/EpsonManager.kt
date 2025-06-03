@@ -51,6 +51,7 @@ enum class PrinterError(val error: String) {
     CMD_END_TRANSACTION("ERROR_COMMAND_END_TRANSACTION"),
     CMD_SEND_DATA("ERROR_COMMAND_SEND_DATA"),
     CMD_CONNECT("ERROR_COMMAND_CONNECT"),
+    CMD_ADD_PULSE("ERROR_COMMAND_ADD_PULSE"),
 }
 
 class PrinterException(errorCode: PrinterError) : CodedException(errorCode.name)
@@ -382,6 +383,30 @@ class EpsonManager: ReceiveListener {
         } catch (e: Exception) {
             printDebugLog("failed to clear buffer")
             promise.reject(PrinterException(PrinterError.CMD_SEND_DATA))
+        }
+    }
+
+    fun sendRawData(data: ByteArray, promise: Promise) {
+        try {
+            printer?.addCommand(data)
+            // printer?.sendData(Printer.PARAM_DEFAULT)
+            promise.resolve(true)
+        } catch (e: Exception) {
+            printDebugLog("failed to send raw data")
+            printer?.clearCommandBuffer()
+            promise.reject(PrinterException(PrinterError.CMD_SEND_DATA))
+        }
+    }
+
+    fun openCashDrawer(pulseDrawer: Int = Printer.DRAWER_2PIN, pulseTime: Int = 100, promise: Promise) {
+        try {
+            printer?.addPulse(pulseDrawer, pulseTime)
+            // printer?.sendData(Printer.PARAM_DEFAULT)
+            promise.resolve(true)
+        } catch (e: Exception) {
+            printDebugLog("failed to open cash drawer")
+            printer?.clearCommandBuffer()
+            promise.reject(PrinterException(PrinterError.CMD_ADD_PULSE))
         }
     }
 

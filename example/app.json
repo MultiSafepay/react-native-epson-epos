@@ -12,9 +12,7 @@
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
-    "assetBundlePatterns": [
-      "**/*"
-    ],
+    "assetBundlePatterns": ["**/*"],
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "expo.modules.epsonepos.example",
@@ -24,10 +22,9 @@
         "NSLocalNetworkUsageDescription": "Allow $(PRODUCT_NAME) to access local network. Required to print the receipt",
         "NSLocationWhenInUseUsageDescription": "Allow $(PRODUCT_NAME) to access local network. Required to print the receipt",
         "NSBluetoothPeripheralUsageDescription": "Allow $(PRODUCT_NAME) to access bluetooth. Required to print the receipt",
-        "UISupportedExternalAccessoryProtocols": [
-          "com.epson.escpos"
-        ],
-        "usesNonExemptEncryption": false
+        "UISupportedExternalAccessoryProtocols": ["com.epson.escpos"],
+        "usesNonExemptEncryption": false,
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
@@ -57,8 +54,6 @@
     "updates": {
       "url": "https://u.expo.dev/47f60327-cfce-4d8f-97ef-add4d1f737df"
     },
-    "plugins": [
-      "expo-router"
-    ]
+    "plugins": ["expo-router"]
   }
 }
