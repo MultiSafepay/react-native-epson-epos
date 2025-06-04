@@ -1,4 +1,4 @@
-import { EventEmitter, Subscription } from "expo-modules-core";
+import type { EventSubscription } from "expo-modules-core";
 import { Platform, PermissionsAndroid, Permission } from "react-native";
 
 import {
@@ -11,7 +11,7 @@ import {
 import ReactNativeEpsonEposModule from "./ReactNativeEpsonEposModule";
 import ReactNativeEpsonEposView from "./ReactNativeEpsonEposView";
 import { PRINTER_SERIES } from "./constants";
-import { getPrinterLanguage, getPrinterSeriesByName, sleep } from "./utils";
+import { getPrinterLanguage, getPrinterSeriesByName } from "./utils";
 export type { PrinterPortType, PrinterLanguage, PrinterSeriesName };
 export { getPrinterSeriesByName, getPrinterLanguage };
 
@@ -239,12 +239,12 @@ export async function setValueAsync(value: string) {
   return await ReactNativeEpsonEposModule.setValueAsync(value);
 }
 
-const emitter = new EventEmitter(ReactNativeEpsonEposModule);
+const emitter = ReactNativeEpsonEposModule;
 
 export function addChangeListener(
   listener: (event: ChangeEventPayload) => void
-): Subscription {
-  return emitter.addListener<ChangeEventPayload>("onChange", listener);
+): EventSubscription {
+  return emitter.addListener("onChange", listener);
 }
 
 export {

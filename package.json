@@ -1,6 +1,6 @@
 {
   "name": "react-native-epson-epos",
-  "version": "0.8.0",
+  "version": "0.9.0",
   "description": "Epson ePOS SDK for React Native",
   "main": "build/index.js",
   "types": "build/index.d.ts",
@@ -29,10 +29,10 @@
   "license": "MIT",
   "homepage": "https://github.com/Multisafepay/react-native-epson-epos#readme",
   "devDependencies": {
-    "@types/react": "~18.0.27",
-    "@types/react-native": "^0.73.0",
-    "expo-module-scripts": "^3.4.0",
-    "expo-modules-core": "~1.11.8"
+    "@types/react": "~18.3.23",
+    "expo-module-scripts": "^4.0.4",
+    "expo": "~52.0.0",
+    "react-native": "~0.76.0"
   },
   "peerDependencies": {
     "expo": "*",
