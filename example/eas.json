@@ -1,25 +1,14 @@
 {
-  "cli": {
-    "version": ">= 3.14.0"
-  },
+  "cli": { "version": ">= 3.14.0" },
   "build": {
     // Use Expo Dev Clients for development builds
     "development": {
       "distribution": "internal",
       "developmentClient": true,
-      "channel": "development"
+      "channel": "development",
+      "android": { "buildType": "apk" }
     },
-    "preview": {
-      "distribution": "internal"
-    },
-    "production": {
-      "android": {
-        "buildType": "apk"
-      },
-      "channel": "production"
-    }
+    "production": { "android": { "buildType": "apk" }, "channel": "production" }
   },
-  "submit": {
-    "production": {}
-  }
+  "submit": { "production": {} }
 }

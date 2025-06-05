@@ -424,6 +424,41 @@ class EpsonManager: NSObject {
     }
   }
   
+  func sendRawData(data: Data, promise: Promise) {
+    guard let printer = printer else {
+      promise.reject(PrinterError.notFound.rawValue, "did fail to send raw data: no printer")
+      return
+    }
+    let result = printer.addCommand(data)
+    if (result != EPOS2_SUCCESS.rawValue) {
+      promise.reject(PrinterError.cmdSendData.rawValue, "did fail to add raw data")
+      return
+    }
+    let sendResult = printer.sendData(Int(EPOS2_PARAM_DEFAULT))
+    if (sendResult != EPOS2_SUCCESS.rawValue) {
+      promise.reject(PrinterError.cmdSendData.rawValue, "did fail to send raw data")
+    } else {
+      promise.resolve(true)
+    }
+  }
+
+  func openCashDrawer(pulseDrawer: Int = EPOS2_DRAWER_2PIN, pulseTime: Int = 100, promise: Promise) {
+    guard let printer = printer else {
+      promise.reject(PrinterError.notFound.rawValue, "did fail to open cash drawer: no printer")
+      return
+    }
+    let result = printer.addPulse(Int32(pulseDrawer), time: Int32(pulseTime))
+    if (result != EPOS2_SUCCESS.rawValue) {
+      promise.reject(PrinterError.cmdAddPulse.rawValue, "did fail to add pulse")
+      return
+    }
+    let sendResult = printer.sendData(Int(EPOS2_PARAM_DEFAULT))
+    if (sendResult != EPOS2_SUCCESS.rawValue) {
+      promise.reject(PrinterError.cmdSendData.rawValue, "did fail to send pulse data")
+    } else {
+      promise.resolve(true)
+    }
+  }
 }
 
 private extension EpsonManager {

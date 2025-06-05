@@ -59,6 +59,22 @@ export function printerIsSetup(): boolean {
   return ReactNativeEpsonEposModule.printerIsSetup();
 }
 
+/**
+ * Sends raw data (ESC/POS or printer command bytes) to the printer.
+ * @param data Array of numbers (bytes) to send to the printer
+ * @returns Promise<boolean> Resolves true if sent successfully
+ */
+export async function sendRawData(data: number[]): Promise<boolean> {
+  return ReactNativeEpsonEposModule.sendRawData(data);
+}
+
+export async function openCashDrawer(): Promise<boolean> {
+  // ESC p 0 25 250
+  // const command = [0x1b, 0x70, 0x00, 0x19, 0xfa] as const;
+  // return sendRawData(command);
+  return ReactNativeEpsonEposModule.openCashDrawer();
+}
+
 interface SetupPrinterProps {
   target: string;
   seriesName?: PrinterSeriesName;
@@ -68,7 +84,7 @@ export function setupPrinter({
   target,
   seriesName,
   language,
-}: SetupPrinterProps): Promise<void> {
+}: SetupPrinterProps): Promise<boolean> {
   const series = PRINTER_SERIES[seriesName ?? "SERIES_TM_T20"];
   const lang = getPrinterLanguage(language ?? "LANG_EN");
   return ReactNativeEpsonEposModule.setupPrinter(target, series, lang);
@@ -225,10 +241,7 @@ export async function pairingBluetoothPrinter(): Promise<BluetoothPrinterRespons
 
       // On Android, we always returns success if we have bluetooth permissions
       const status: BluetoothStatus = "BLUETOOTH_SUCCESS";
-      return Promise.resolve({
-        status,
-        reason: getBluetoothMessage(status),
-      });
+      return Promise.resolve({ status, reason: getBluetoothMessage(status) });
     } catch (err) {
       return Promise.reject(err);
     }

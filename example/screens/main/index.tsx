@@ -8,6 +8,7 @@ import {
   StyleSheet,
   View,
   ListRenderItem,
+  TextInput,
 } from "react-native";
 import * as EpsonSDK from "react-native-epson-epos";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -32,7 +33,6 @@ const connectPrinter = async ({ attempts }: ConnectPrinterRequest) => {
     } else {
       throw e;
     }
-    // throw e;
   }
 };
 
@@ -43,6 +43,7 @@ const MainScreen: FC = () => {
     EpsonSDK.Printer | undefined
   >();
   const [discovering, setDiscovering] = useState(false);
+  const [rawdataValue, setRawdataValue] = useState("");
 
   const deselectPrinter = useCallback(() => {
     setSelectedPrinter(undefined);
@@ -234,6 +235,18 @@ const MainScreen: FC = () => {
     }
   }, [selectedPrinter]);
 
+  const onOpenCashDrawer = useCallback(() => EpsonSDK.openCashDrawer(), []);
+
+  const onSendRawData = useCallback(() => {
+    //sendRawData
+    const notDigitValue = /[\D]/g;
+    const arraychar = /[\[\s\]]/g;
+    const rawParsedList = rawdataValue
+      .replace(arraychar, "") //remove spaces and brackets
+      .split(notDigitValue) //split by non-digit characters, coma, dots, etc.
+      .map((d) => Number(d)); //convert to numbers, valid decimal and hex values
+    EpsonSDK.sendRawData(rawParsedList);
+  }, [rawdataValue]);
   return (
     <SafeAreaView edges={["bottom", "left", "right"]} style={styles.container}>
       <FlatList
@@ -275,12 +288,40 @@ const MainScreen: FC = () => {
           </View>
         )}
       />
-      <View style={{ width: "100%", paddingBottom: 5 }}>
-        <Button
-          disabled={!selectedPrinter}
-          title="Print Test Page"
-          onPress={printTestPage}
-        />
+      <View style={styles.bottomContent}>
+        <View style={styles.bottomRow}>
+          <TextInput
+            style={[styles.bottomLeft, styles.bottomInput]}
+            // editable={selectedPrinter !== undefined}
+            placeholder="Raw Data"
+            value={rawdataValue}
+            keyboardType="numeric"
+            onChangeText={setRawdataValue}
+          />
+          <View style={styles.bottomRight}>
+            <Button
+              disabled={!selectedPrinter || !rawdataValue}
+              title="send Raw Data"
+              onPress={onSendRawData}
+            />
+          </View>
+        </View>
+        <View style={styles.bottomRow}>
+          <View style={styles.bottomLeft}>
+            <Button
+              disabled={!selectedPrinter}
+              title="open CashDrawer"
+              onPress={onOpenCashDrawer}
+            />
+          </View>
+          <View style={styles.bottomRight}>
+            <Button
+              disabled={!selectedPrinter}
+              title="Print Test Page"
+              onPress={printTestPage}
+            />
+          </View>
+        </View>
       </View>
     </SafeAreaView>
   );
@@ -293,6 +334,22 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  bottomContent: {
+    width: "100%",
+    paddingBottom: 5,
+  },
+  bottomInput: {
+    borderWidth: 1,
+    borderRadius: 5,
+    borderColor: "#040404",
+  },
+  bottomRow: {
+    width: "100%",
+    marginTop: 10,
+    flexDirection: "row",
+  },
+  bottomLeft: { flex: 1, marginRight: 5 },
+  bottomRight: { flex: 1, marginLeft: 5 },
 });
 
 export default MainScreen;
