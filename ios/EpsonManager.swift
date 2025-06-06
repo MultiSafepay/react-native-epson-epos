@@ -442,12 +442,12 @@ class EpsonManager: NSObject {
     }
   }
 
-  func openCashDrawer(pulseDrawer: Int = EPOS2_DRAWER_2PIN, pulseTime: Int = 100, promise: Promise) {
+  func openCashDrawer(pulseDrawer: Epos2Drawer = EPOS2_DRAWER_2PIN, pulseTime: Int = 100, promise: Promise) {
     guard let printer = printer else {
       promise.reject(PrinterError.notFound.rawValue, "did fail to open cash drawer: no printer")
       return
     }
-    let result = printer.addPulse(Int32(pulseDrawer), time: Int32(pulseTime))
+    let result = printer.addPulse(pulseDrawer.rawValue, time: Int32(pulseTime))
     if (result != EPOS2_SUCCESS.rawValue) {
       promise.reject(PrinterError.cmdAddPulse.rawValue, "did fail to add pulse")
       return

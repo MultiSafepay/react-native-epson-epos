@@ -37,6 +37,7 @@ enum PrinterError: String {
   case cmdSendData = "ERROR_COMMAND_SEND_DATA"
   case cmdConnect = "ERROR_COMMAND_CONNECT"
   case cmdDisconnect = "ERROR_COMMAND_DISCONNECT"
+  case cmdAddPulse = "ERROR_COMMAND_ADD_PULSE"
 }
 
 enum PrinterPortType: String {
