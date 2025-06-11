@@ -152,5 +152,20 @@ public class ReactNativeEpsonEposModule: Module {
     AsyncFunction("disconnect") { (promise: Promise) in
       epsonManager.disconnect(promise: promise)
     }
+    
+    /**
+     * This function sends raw data (ESC/POS or printer command bytes) to the printer.
+     */
+    AsyncFunction("sendRawData") { (data: [Int], promise: Promise) in
+      let byteData = Data(data.map { UInt8($0) })
+      epsonManager.sendRawData(data: byteData, promise: promise)
+    }
+    
+    /**
+     * This function opens the cash drawer.
+     */
+    AsyncFunction("openCashDrawer") { (promise: Promise) in
+      epsonManager.openCashDrawer(promise: promise)
+    }
   }
 }

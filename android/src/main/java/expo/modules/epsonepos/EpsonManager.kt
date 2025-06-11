@@ -401,6 +401,7 @@ class EpsonManager: ReceiveListener {
     fun openCashDrawer(pulseDrawer: Int = Printer.DRAWER_2PIN, pulseTime: Int = 100, promise: Promise) {
         try {
             printer!!.addPulse(pulseDrawer, pulseTime)
+            printer!!.sendData(Printer.PARAM_DEFAULT)
             promise.resolve(true)
         } catch (e: Exception) {
             printDebugLog("failed to open cash drawer")
