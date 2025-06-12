@@ -399,14 +399,36 @@ class EpsonManager: ReceiveListener {
     }
 
     fun openCashDrawer(pulseDrawer: Int = Printer.DRAWER_2PIN, pulseTime: Int = 100, promise: Promise) {
+        if (printer == null) {
+            promise.reject(PrinterException(PrinterError.NOT_FOUND))
+            return
+        }
+
+        if (!isConnected) {
+            promise.reject(PrinterException(PrinterError.CMD_CONNECT))
+            return
+        }
+
         try {
+            // Clear command buffer to ensure clean state
+            printer!!.clearCommandBuffer()
+            
+            // Add pulse command and send immediately
             printer!!.addPulse(pulseDrawer, pulseTime)
             printer!!.sendData(Printer.PARAM_DEFAULT)
             promise.resolve(true)
         } catch (e: Exception) {
-            printDebugLog("failed to open cash drawer")
+            printDebugLog("failed to open cash drawer: ${e.message}")
             printer?.clearCommandBuffer()
-            promise.reject(PrinterException(PrinterError.CMD_ADD_PULSE))
+            
+            // Provide more specific error information
+            if (e is Epos2Exception) {
+                val reason = getEpos2ExceptionText(e.errorStatus)
+                printDebugLog("Epson SDK error: ${reason} - ${e.errorStatus}")
+                promise.reject(CodedException("CASH_DRAWER_ERROR_${e.errorStatus}", "Failed to open cash drawer: ${reason}"))
+            } else {
+                promise.reject(PrinterException(PrinterError.CMD_ADD_PULSE))
+            }
         }
     }
 

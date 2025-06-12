@@ -447,14 +447,26 @@ class EpsonManager: NSObject {
       promise.reject(PrinterError.notFound.rawValue, "did fail to open cash drawer: no printer")
       return
     }
+    
+    guard isConnected else {
+      promise.reject(PrinterError.cmdConnect.rawValue, "did fail to open cash drawer: printer not connected")
+      return
+    }
+    
+    // Clear command buffer to ensure clean state
+    let clearResult = printer.clearCommandBuffer()
+    if (clearResult != EPOS2_SUCCESS.rawValue) {
+      printDebugLog("warning: failed to clear command buffer before opening cash drawer")
+    }
+    
     let result = printer.addPulse(pulseDrawer.rawValue, time: Int32(pulseTime))
     if (result != EPOS2_SUCCESS.rawValue) {
-      promise.reject(PrinterError.cmdAddPulse.rawValue, "did fail to add pulse")
+      promise.reject(PrinterError.cmdAddPulse.rawValue, "did fail to add pulse: \(result)")
       return
     }
     let sendResult = printer.sendData(Int(EPOS2_PARAM_DEFAULT))
     if (sendResult != EPOS2_SUCCESS.rawValue) {
-      promise.reject(PrinterError.cmdSendData.rawValue, "did fail to send pulse data")
+      promise.reject(PrinterError.cmdSendData.rawValue, "did fail to send pulse data: \(sendResult)")
     } else {
       promise.resolve(true)
     }
