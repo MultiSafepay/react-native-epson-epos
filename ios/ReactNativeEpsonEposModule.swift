@@ -167,5 +167,13 @@ public class ReactNativeEpsonEposModule: Module {
     AsyncFunction("openCashDrawer") { (promise: Promise) in
       epsonManager.openCashDrawer(promise: promise)
     }
+    
+    /**
+     * This function opens the cash drawer with custom settings.
+     */
+    AsyncFunction("openCashDrawerWithSettings") { (pulseDrawer: String, pulseTime: Int, promise: Promise) in
+      let drawerPin: Epos2Drawer = pulseDrawer == "DRAWER_5PIN" ? EPOS2_DRAWER_5PIN : EPOS2_DRAWER_2PIN
+      epsonManager.openCashDrawer(pulseDrawer: drawerPin, pulseTime: pulseTime, promise: promise)
+    }
   }
 }

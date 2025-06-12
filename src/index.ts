@@ -69,10 +69,43 @@ export async function sendRawData(data: number[]): Promise<boolean> {
 }
 
 export async function openCashDrawer(): Promise<boolean> {
-  // ESC p 0 25 250
-  // const command = [0x1b, 0x70, 0x00, 0x19, 0xfa] as const;
-  // return sendRawData(command);
-  return ReactNativeEpsonEposModule.openCashDrawer();
+  try {
+    // First, try using the Epson SDK's addPulse method
+    return await ReactNativeEpsonEposModule.openCashDrawer();
+  } catch (error) {
+    if (__DEV__) {
+      console.warn('SDK cash drawer command failed, attempting fallback to raw ESC/POS command:', error);
+    }
+    
+    // Fallback: Use raw ESC/POS command for cash drawer
+    // ESC p 0 25 250 - Standard cash drawer command
+    const command = [0x1b, 0x70, 0x00, 0x19, 0xfa] as const;
+    try {
+      return await sendRawData([...command]);
+    } catch (fallbackError) {
+      if (__DEV__) {
+        console.error('Both SDK and raw command methods failed:', fallbackError);
+      }
+      // Re-throw the original SDK error for better debugging
+      throw error;
+    }
+  }
+}
+
+/**
+ * Opens the cash drawer with custom pulse settings
+ * @param pulseDrawer - Drawer pin (DRAWER_2PIN or DRAWER_5PIN)
+ * @param pulseTime - Pulse duration in milliseconds (default: 100)
+ * @returns Promise<boolean> Resolves true if drawer opened successfully
+ */
+export async function openCashDrawerWithSettings(
+  pulseDrawer?: "DRAWER_2PIN" | "DRAWER_5PIN", 
+  pulseTime?: number
+): Promise<boolean> {
+  return ReactNativeEpsonEposModule.openCashDrawerWithSettings(
+    pulseDrawer ?? "DRAWER_2PIN",
+    pulseTime ?? 100
+  );
 }
 
 interface SetupPrinterProps {
