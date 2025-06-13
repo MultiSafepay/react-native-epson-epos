@@ -235,7 +235,48 @@ const MainScreen: FC = () => {
     }
   }, [selectedPrinter]);
 
-  const onOpenCashDrawer = useCallback(() => EpsonSDK.openCashDrawer(), []);
+  const onOpenCashDrawer = useCallback(async () => {
+    await connectPrinter({ attempts: 3 });
+
+    // Clear the buffer before sending the command (initialize the command buffer)
+    await EpsonSDK.clearBuffer();
+
+    // Fallback: Use raw ESC/POS command for cash drawer
+    const escCommands = [
+      // Initialize printer
+      0x1b,
+      0x40, // ESC @ - Initialize printer
+
+      // Open cash drawer
+      // Note: Different cash drawers might use different pins
+      0x1b,
+      0x70,
+      0x00,
+      0x19,
+      0xfa, // ESC p 0 25 250 - Send pulse to pin 2
+      0x1b,
+      0x70,
+      0x01,
+      0x19,
+      0xfa, // ESC p 1 25 250 - Send pulse to pin 5
+
+      // Clear buffer and reset settings
+      0x1b,
+      0x40, // ESC @ - Reset printer
+    ];
+    return EpsonSDK.sendRawData(escCommands)
+      .then(() => {
+        if (__DEV__) {
+          console.log("🖨️ epson Cash drawer opened successfully");
+        }
+      })
+      .catch((err) => {
+        if (__DEV__) {
+          console.error("🖨️ epson Error opening cash drawer", err);
+        }
+        throw err;
+      });
+  }, []);
 
   const onSendRawData = useCallback(() => {
     //sendRawData
