@@ -1,7 +1,7 @@
 //
-//  Copyright (C) Seiko Epson Corporation 2016 - 2024. All rights reserved.
+//  Copyright (C) Seiko Epson Corporation 2016 - 2025. All rights reserved.
 //
-//  ePOS SDK Ver.2.32.0
+//  ePOS SDK Ver.2.33.0
 
 #ifdef __OBJC__
 #import <Foundation/Foundation.h>
@@ -1221,6 +1221,11 @@ enum Epos2PrinterSettingPrintSpeed : int {
 @property(nonatomic, readonly, copy, getter=getSsid) NSString * ssid;
 @end
 
+@interface Epos2SecureOption : NSObject
+@property(strong, nonatomic, readwrite, getter=getPrinterPassword, setter=setPrinterPassword:) NSString *printerPassword;
+@property(assign, nonatomic, readwrite, getter=getDoVerification, setter=setDoVerification:) BOOL doVerification;
+@end
+
 @interface Epos2Printer : Epos2CommonPrinter
 - (id) initWithPrinterSeries:(int)printerSeries lang:(int)lang;
 - (void) dealloc;
@@ -1256,16 +1261,21 @@ enum Epos2PrinterSettingPrintSpeed : int {
 - (int) getPrinterFirmwareInfo:(long)timeout delegate:(id<Epos2FirmwareInformationDelegate>)delegate;
 - (int) updateFirmware:(Epos2FirmwareInfo *)targetFirmwareInfo delegate:(id<Epos2FirmwareUpdateDelegate>)delegate;
 - (int) updateFirmware:(Epos2FirmwareInfo *)targetFirmwareInfo option:(Epos2FirmwareOption *)option delegate:(id<Epos2FirmwareUpdateDelegate>)delegate;
+- (int) updateFirmware:(Epos2FirmwareInfo *)targetFirmwareInfo secureOption:(Epos2SecureOption *)secureOption delegate:(id<Epos2FirmwareUpdateDelegate>)delegate;
 - (int) verifyUpdate:(Epos2FirmwareInfo *)targetFirmwareInfo delegate:(id<Epos2VerifyeUpdateDelegate>)delegate;
+- (int) verifyUpdate:(Epos2FirmwareInfo *)targetFirmwareInfo secureOption:(Epos2SecureOption *)secureOption delegate:(id<Epos2VerifyeUpdateDelegate>)delegate;
 
 - (int) getMaintenanceCounter:(long)timeout type:(int)Type delegate:(id<Epos2MaintenanceCounterDelegate>)delegate;
 - (int) resetMaintenanceCounter:(long)timeout type:(int)Type delegate:(id<Epos2MaintenanceCounterDelegate>)delegate;
 - (int) getPrinterSetting:(long)timeout type:(int)Type delegate:(id<Epos2PrinterSettingDelegate>)delegate;
 - (int) setPrinterSetting:(long)timeout setttingList:(NSDictionary *)list delegate:(id<Epos2PrinterSettingDelegate>)delegate;
 - (int) verifyPassword:(long)timeout administratorPassword:(NSString *)administratorPassword;
+- (int) verifyPassword:(long)timeout secureOption:(Epos2SecureOption *)secureOption;
 - (int) getPrinterSettingEx:(long)timeout;
+- (int) getPrinterSettingEx:(long)timeout secureOption:(Epos2SecureOption *)secureOption;
 - (int) setPrinterSettingEx:(long)timeout jsonString:(NSString *)jsonString;
 - (int) setPrinterSettingEx:(long)timeout jsonString:(NSString *)jsonString administratorPassword:(NSString *)administratorPassword;
+- (int) setPrinterSettingEx:(long)timeout jsonString:(NSString *)jsonString secureOption:(Epos2SecureOption *)secureOption;
 - (int) getPrinterInformation:(long)timeout delegate:(id<Epos2PrinterInformationDelegate>)delegate;
 @end
 

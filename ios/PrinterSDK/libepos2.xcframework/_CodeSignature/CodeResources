@@ -6,19 +6,19 @@
 	<dict>
 		<key>ios-arm64/Headers/ePOS2.h</key>
 		<data>
-		JNHmTSYKIQyAcNCGfbHsE3fpaAU=
+		XULCd7kbMonvdxEU5YQb8mVfVJM=
 		</data>
 		<key>ios-arm64/libepos2.a</key>
 		<data>
-		R84aRgV++dKVA23Eer4UEOnO1lE=
+		XerBoh2loxOBDwPbws+iW2MvmPQ=
 		</data>
 		<key>ios-arm64_x86_64-simulator/Headers/ePOS2.h</key>
 		<data>
-		JNHmTSYKIQyAcNCGfbHsE3fpaAU=
+		XULCd7kbMonvdxEU5YQb8mVfVJM=
 		</data>
 		<key>ios-arm64_x86_64-simulator/libepos2.a</key>
 		<data>
-		fwX+AItAl1kLKUVyz/7FTi5GFvw=
+		MSm+QA1/2BNEP/a3cBkLBG6VFzQ=
 		</data>
 	</dict>
 	<key>files2</key>
@@ -27,44 +27,44 @@
 		<dict>
 			<key>hash</key>
 			<data>
-			JNHmTSYKIQyAcNCGfbHsE3fpaAU=
+			XULCd7kbMonvdxEU5YQb8mVfVJM=
 			</data>
 			<key>hash2</key>
 			<data>
-			4CKpJl8yiPEEhD7MqLxNjqW2mClx8Js1BCqqDuVEBPA=
+			uBH6/Jl6pbmCfm+6UZyRY/LLjDiK2UvT6scfKxnhmKc=
 			</data>
 		</dict>
 		<key>ios-arm64/libepos2.a</key>
 		<dict>
 			<key>hash</key>
 			<data>
-			R84aRgV++dKVA23Eer4UEOnO1lE=
+			XerBoh2loxOBDwPbws+iW2MvmPQ=
 			</data>
 			<key>hash2</key>
 			<data>
-			626tc8GcVQcci+HqEo9IhnUvByv/MeWep/SFK0QgJCc=
+			VCRyk4HfIQSrX/B9uHcEpoZVTX0gl7wmglx/GrW4B/k=
 			</data>
 		</dict>
 		<key>ios-arm64_x86_64-simulator/Headers/ePOS2.h</key>
 		<dict>
 			<key>hash</key>
 			<data>
-			JNHmTSYKIQyAcNCGfbHsE3fpaAU=
+			XULCd7kbMonvdxEU5YQb8mVfVJM=
 			</data>
 			<key>hash2</key>
 			<data>
-			4CKpJl8yiPEEhD7MqLxNjqW2mClx8Js1BCqqDuVEBPA=
+			uBH6/Jl6pbmCfm+6UZyRY/LLjDiK2UvT6scfKxnhmKc=
 			</data>
 		</dict>
 		<key>ios-arm64_x86_64-simulator/libepos2.a</key>
 		<dict>
 			<key>hash</key>
 			<data>
-			fwX+AItAl1kLKUVyz/7FTi5GFvw=
+			MSm+QA1/2BNEP/a3cBkLBG6VFzQ=
 			</data>
 			<key>hash2</key>
 			<data>
-			Jd9Hvd0Sb+XSRE0zLPnShkAu52H14uiS/gsRyRKMMRQ=
+			n5hfp1O+vJp6DM6ls8IanTzbS7JueguxXXQPaEZjjNY=
 			</data>
 		</dict>
 	</dict>
