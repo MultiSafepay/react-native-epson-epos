@@ -382,6 +382,8 @@ class EpsonManager: ReceiveListener {
             promise.resolve(true)
         } catch (e: Exception) {
             printDebugLog("failed to clear buffer")
+            printer?.clearCommandBuffer()
+            printer?.disconnect()
             promise.reject(PrinterException(PrinterError.CMD_SEND_DATA))
         }
     }
@@ -394,6 +396,7 @@ class EpsonManager: ReceiveListener {
         } catch (e: Exception) {
             printDebugLog("failed to send raw data")
             printer?.clearCommandBuffer()
+            printer?.disconnect()
             promise.reject(PrinterException(PrinterError.CMD_SEND_DATA))
         }
     }
