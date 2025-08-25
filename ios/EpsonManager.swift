@@ -139,7 +139,7 @@ class EpsonManager: NSObject {
   }
   
   func printerIsConnected() -> Bool {
-    return isConnected
+    return printer != nil && isConnected
   }
   
   func discoverPrinters(portType: PrinterPortType, promise: Promise) {

@@ -195,7 +195,7 @@ class EpsonManager: ReceiveListener {
     }
 
     fun printerIsConnected(): Boolean {
-       return isConnected
+       return printer != null && isConnected
     }
 
     suspend fun startDiscovery(portType: String, context: Context): List<HashMap<String, String>> {
