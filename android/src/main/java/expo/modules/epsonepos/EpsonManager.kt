@@ -440,7 +440,7 @@ class EpsonManager: ReceiveListener {
                 }
                 val reason = getEpos2ExceptionText(e.errorStatus)
                 printDebugLog("reason: ${reason} - ${e.errorStatus}")
-                promise.reject(CodedException("$e.errorStatus"))
+                promise.reject(CodedException(reason))
             } else {
                 promise.reject(PrinterException(PrinterError.CMD_CONNECT))
             }

@@ -75,6 +75,39 @@ export async function openCashDrawer(): Promise<boolean> {
   return ReactNativeEpsonEposModule.openCashDrawer();
 }
 
+/**
+ * Opens the cash drawer using raw ESC/POS commands.
+ * This is a JavaScript implementation that uses sendRawData under the hood.
+ * Sends initialization, dual pin pulse commands, and reset sequence.
+ * @returns Promise<boolean> Resolves true if sent successfully
+ */
+export async function openCashDrawerRaw(): Promise<boolean> {
+  const cashDrawerCommands = [
+    // Initialize printer
+    0x1b,
+    0x40, // ESC @ - Initialize printer
+
+    // Open cash drawer
+    // Note: Different cash drawers might use different pins
+    0x1b,
+    0x70,
+    0x00,
+    0x19,
+    0xfa, // ESC p 0 25 250 - Send pulse to pin 2
+    0x1b,
+    0x70,
+    0x01,
+    0x19,
+    0xfa, // ESC p 1 25 250 - Send pulse to pin 5
+
+    // Clear buffer and reset settings
+    0x1b,
+    0x40, // ESC @ - Reset printer
+  ];
+
+  return sendRawData(cashDrawerCommands);
+}
+
 interface SetupPrinterProps {
   target: string;
   seriesName?: PrinterSeriesName;

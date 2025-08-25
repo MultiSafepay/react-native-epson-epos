@@ -38,30 +38,6 @@ const connectPrinter = async ({ attempts }: ConnectPrinterRequest) => {
   }
 };
 
-// Simplified cash drawer command sequence
-const cashDrawerCommands = [
-  // Initialize printer
-  0x1b,
-  0x40, // ESC @ - Initialize printer
-
-  // Open cash drawer
-  // Note: Different cash drawers might use different pins
-  0x1b,
-  0x70,
-  0x00,
-  0x19,
-  0xfa, // ESC p 0 25 250 - Send pulse to pin 2
-  0x1b,
-  0x70,
-  0x01,
-  0x19,
-  0xfa, // ESC p 1 25 250 - Send pulse to pin 5
-
-  // Clear buffer and reset settings
-  0x1b,
-  0x40, // ESC @ - Reset printer
-];
-
 const MainScreen: FC = () => {
   const navigation = useNavigation();
   const [printers, setPrinters] = useState<EpsonSDK.Printer[]>([]);
@@ -70,6 +46,8 @@ const MainScreen: FC = () => {
   >();
   const [discovering, setDiscovering] = useState(false);
   const [rawdataValue, setRawdataValue] = useState("");
+  const [isOperationInProgress, setIsOperationInProgress] = useState(false);
+  const [currentOperation, setCurrentOperation] = useState<string | null>(null);
 
   // Phase 2: Enhanced connection state management
   const [connectionState, setConnectionState] = useState<{
@@ -152,6 +130,95 @@ const MainScreen: FC = () => {
           lastConnectTime: null,
         }));
 
+        // Handle ERR_ILLEGAL specifically - don't retry, fix the issue
+        if (
+          errorMessage.includes("ERR_ILLEGAL") ||
+          errorMessage.includes("illegal")
+        ) {
+          if (__DEV__) {
+            console.log(
+              "🖨️ ERR_ILLEGAL detected - attempting to fix state immediately"
+            );
+          }
+
+          try {
+            // Force complete disconnection first
+            await EpsonSDK.disconnect();
+            if (__DEV__) {
+              console.log("🖨️ Forced disconnection completed");
+            }
+          } catch (disconnectError) {
+            if (__DEV__) {
+              console.log(
+                "🖨️ Disconnect during ERR_ILLEGAL recovery failed (expected)"
+              );
+            }
+          }
+
+          // Wait longer to ensure clean state
+          await new Promise((resolve) => setTimeout(resolve, 2000));
+
+          // Re-setup the printer if we have a selected printer
+          if (
+            selectedPrinter &&
+            selectedPrinter.target &&
+            selectedPrinter.name
+          ) {
+            try {
+              if (__DEV__) {
+                console.log("🖨️ Re-setting up printer after ERR_ILLEGAL");
+              }
+
+              const name = selectedPrinter.name as EpsonSDK.PrinterSeriesName;
+              const seriesName = EpsonSDK.getPrinterSeriesByName(name);
+
+              await EpsonSDK.setupPrinter({
+                target: selectedPrinter.target,
+                seriesName,
+                language: "LANG_EN",
+              });
+
+              if (__DEV__) {
+                console.log(
+                  "🖨️ Printer re-setup completed, attempting fresh connection"
+                );
+              }
+
+              // Now try one fresh connection
+              await EpsonSDK.connect();
+
+              setConnectionState((prev) => ({
+                ...prev,
+                isConnected: true,
+                isConnecting: false,
+                lastError: null,
+                lastConnectTime: Date.now(),
+              }));
+
+              if (__DEV__) {
+                console.log("🖨️ ERR_ILLEGAL recovery successful");
+              }
+              return;
+            } catch (recoveryError) {
+              if (__DEV__) {
+                console.error("🖨️ ERR_ILLEGAL recovery failed:", recoveryError);
+              }
+              setConnectionState((prev) => ({
+                ...prev,
+                lastError: `ERR_ILLEGAL recovery failed: ${(recoveryError as Error).message}`,
+              }));
+              throw new Error(
+                `ERR_ILLEGAL detected and recovery failed. Please try selecting the printer again.`
+              );
+            }
+          } else {
+            throw new Error(
+              "ERR_ILLEGAL detected. Please select the printer again."
+            );
+          }
+        }
+
+        // For other errors, use normal retry logic
         if (attempts > 0) {
           if (__DEV__) {
             console.log(
@@ -168,7 +235,7 @@ const MainScreen: FC = () => {
         }
       }
     },
-    [connectionState]
+    [connectionState, selectedPrinter]
   );
 
   // Phase 2: Enhanced disconnect with state management
@@ -397,7 +464,10 @@ const MainScreen: FC = () => {
   );
 
   const printTestPage = useCallback(async () => {
-    if (selectedPrinter) {
+    if (selectedPrinter && !isOperationInProgress) {
+      setIsOperationInProgress(true);
+      setCurrentOperation("Printing Test Page");
+
       try {
         if (!EpsonSDK.printerIsSetup()) {
           throw new Error("Printer is not setup");
@@ -470,9 +540,17 @@ const MainScreen: FC = () => {
             }
             break;
         }
+      } finally {
+        setIsOperationInProgress(false);
+        setCurrentOperation(null);
       }
     }
-  }, [selectedPrinter, connectPrinterWithState, disconnectPrinterWithState]);
+  }, [
+    selectedPrinter,
+    isOperationInProgress,
+    connectPrinterWithState,
+    disconnectPrinterWithState,
+  ]);
 
   useEffect(() => {
     navigation.setOptions({
@@ -508,16 +586,48 @@ const MainScreen: FC = () => {
 
   // Simplified cash drawer function
   const onOpenCashDrawer = useCallback(async () => {
+    // Prevent multiple concurrent operations
+    if (isOperationInProgress) {
+      if (__DEV__) {
+        console.log("🖨️ Cash drawer operation already in progress, skipping");
+      }
+      return;
+    }
+
+    setIsOperationInProgress(true);
+    setCurrentOperation("Opening Cash Drawer");
+
     try {
+      // await EpsonSDK.disconnect();
+      // await connectPrinterWithState({ attempts: 3 });
+
+      if (!EpsonSDK.printerIsSetup()) {
+        throw new Error("Printer is not setup");
+      }
+      if (__DEV__) {
+        console.log("🖨️ Printer is ready");
+      }
+
+      // Phase 2: Enhanced connection management for regular printing
+      if (__DEV__) {
+        console.log("🖨️ Checking connection state...");
+      }
+
+      // Use enhanced connection management
+      await connectPrinterWithState({ attempts: 3 });
+
+      // Before printing, clear the buffer
+      if (__DEV__) {
+        console.log("🖨️ Will clear the buffer");
+      }
+      await EpsonSDK.clearBuffer();
+
       if (__DEV__) {
         console.log("🖨️ Opening cash drawer...");
       }
 
-      // Use forceNewConnection for cash drawer to ensure clean state
-      await sendRawCommandSafely(cashDrawerCommands, "cash drawer", {
-        forceNewConnection: true,
-        timeout: 15000,
-      });
+      // Use the new raw cash drawer method from the SDK
+      await EpsonSDK.openCashDrawerRaw();
 
       if (__DEV__) {
         console.log("🖨️ Cash drawer opened successfully");
@@ -526,9 +636,15 @@ const MainScreen: FC = () => {
       if (__DEV__) {
         console.error("🖨️ Failed to open cash drawer:", error);
       }
-      throw error;
+      // Show error to user but don't re-throw to prevent unhandled promise rejection
+      showError(error as Error);
+      disconnectPrinterWithState();
+    } finally {
+      // Always re-enable the buttons regardless of success or failure
+      setIsOperationInProgress(false);
+      setCurrentOperation(null);
     }
-  }, [sendRawCommandSafely]);
+  }, [isOperationInProgress, connectPrinterWithState]);
 
   // Phase 2: Manual connection reset utility
   const resetConnection = useCallback(async () => {
@@ -551,7 +667,10 @@ const MainScreen: FC = () => {
   }, [connectPrinterWithState, disconnectPrinterWithState]);
 
   const onSendRawData = useCallback(async () => {
-    if (!rawdataValue) return;
+    if (!rawdataValue || isOperationInProgress) return;
+
+    setIsOperationInProgress(true);
+    setCurrentOperation("Sending Raw Data");
 
     try {
       // Parse raw data input
@@ -573,8 +692,11 @@ const MainScreen: FC = () => {
         console.error("🖨️ Error sending raw data", error);
       }
       showError(error as Error);
+    } finally {
+      setIsOperationInProgress(false);
+      setCurrentOperation(null);
     }
-  }, [rawdataValue, sendRawCommandSafely]);
+  }, [rawdataValue, isOperationInProgress, sendRawCommandSafely]);
   return (
     <SafeAreaView edges={["bottom", "left", "right"]} style={styles.container}>
       <FlatList
@@ -593,13 +715,13 @@ const MainScreen: FC = () => {
             }}
           >
             <Button
-              disabled={discovering}
+              disabled={discovering || isOperationInProgress}
               title="Bluetooth"
               onPress={discoverViaBluetooth}
             />
             <View style={{ width: 5 }} />
             <Button
-              disabled={discovering}
+              disabled={discovering || isOperationInProgress}
               title="Lan"
               onPress={() => {
                 discover("LAN");
@@ -607,7 +729,7 @@ const MainScreen: FC = () => {
             />
             <View style={{ width: 5 }} />
             <Button
-              disabled={discovering}
+              disabled={discovering || isOperationInProgress}
               title="USB"
               onPress={() => {
                 discover("USB");
@@ -624,26 +746,34 @@ const MainScreen: FC = () => {
             style={[
               styles.statusIndicator,
               {
-                backgroundColor: connectionState.isConnected
-                  ? "#4CAF50"
-                  : connectionState.isConnecting
-                    ? "#FF9800"
-                    : "#F44336",
+                backgroundColor: isOperationInProgress
+                  ? "#9C27B0" // Purple for any operation in progress
+                  : connectionState.isConnected
+                    ? "#4CAF50"
+                    : connectionState.isConnecting
+                      ? "#FF9800"
+                      : "#F44336",
               },
             ]}
           >
             <Text style={styles.statusText}>
-              {connectionState.isConnecting
-                ? "Connecting..."
-                : connectionState.isConnected
-                  ? "Connected"
-                  : "Disconnected"}
+              {isOperationInProgress
+                ? currentOperation || "Operation in Progress..."
+                : connectionState.isConnecting
+                  ? "Connecting..."
+                  : connectionState.isConnected
+                    ? "Connected"
+                    : "Disconnected"}
             </Text>
           </View>
           <TouchableOpacity
             style={styles.resetButton}
             onPress={resetConnection}
-            disabled={!selectedPrinter || connectionState.isConnecting}
+            disabled={
+              !selectedPrinter ||
+              connectionState.isConnecting ||
+              isOperationInProgress
+            }
           >
             <Text style={styles.resetButtonText}>Reset</Text>
           </TouchableOpacity>
@@ -652,7 +782,7 @@ const MainScreen: FC = () => {
         <View style={styles.bottomRow}>
           <TextInput
             style={[styles.bottomLeft, styles.bottomInput]}
-            // editable={selectedPrinter !== undefined}
+            editable={!isOperationInProgress}
             placeholder="Raw Data"
             value={rawdataValue}
             keyboardType="numeric"
@@ -660,7 +790,9 @@ const MainScreen: FC = () => {
           />
           <View style={styles.bottomRight}>
             <Button
-              disabled={!selectedPrinter || !rawdataValue}
+              disabled={
+                !selectedPrinter || !rawdataValue || isOperationInProgress
+              }
               title="send Raw Data"
               onPress={onSendRawData}
             />
@@ -669,15 +801,25 @@ const MainScreen: FC = () => {
         <View style={styles.bottomRow}>
           <View style={styles.bottomLeft}>
             <Button
-              disabled={!selectedPrinter}
-              title="Open Cash Drawer"
+              disabled={!selectedPrinter || isOperationInProgress}
+              title={
+                isOperationInProgress &&
+                currentOperation === "Opening Cash Drawer"
+                  ? "Opening..."
+                  : "Open Cash Drawer"
+              }
               onPress={onOpenCashDrawer}
             />
           </View>
           <View style={styles.bottomRight}>
             <Button
-              disabled={!selectedPrinter}
-              title="Print Test Page"
+              disabled={!selectedPrinter || isOperationInProgress}
+              title={
+                isOperationInProgress &&
+                currentOperation === "Printing Test Page"
+                  ? "Printing..."
+                  : "Print Test Page"
+              }
               onPress={printTestPage}
             />
           </View>
