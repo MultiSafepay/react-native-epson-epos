@@ -190,6 +190,7 @@ class EpsonManager: NSObject {
   
   func setupPrinter(target: String, series: Int, lang: Int, promise: Promise) {
     if let printer = printer {
+      printDebugLog("Printer not found... unsubscribe delegate")
       printer.clearCommandBuffer()
       printer.setReceiveEventDelegate(nil)
     }
@@ -199,6 +200,7 @@ class EpsonManager: NSObject {
     printer = Epos2Printer(printerSeries: Int32(series), lang: Int32(lang))
     self.target = target
     printer?.setReceiveEventDelegate(self)
+    printDebugLog("Printer found... subscribe delegate")
     
     promise.resolve(true)
   }
@@ -229,6 +231,7 @@ class EpsonManager: NSObject {
     }
     let result = printer.addCut(EPOS2_CUT_FEED.rawValue)
     if (result != EPOS2_SUCCESS.rawValue) {
+      printer.clearCommandBuffer()
       promise.reject(PrinterError.cmdAddCut.rawValue, "did fail to cut paper: no printer")
     } else {
       promise.resolve(true)
@@ -242,6 +245,7 @@ class EpsonManager: NSObject {
     }
     let result = printer.addFeedLine(line)
     if (result != EPOS2_SUCCESS.rawValue) {
+      printer.clearCommandBuffer()
       promise.reject(PrinterError.cmdAddFeedLine.rawValue, "did fail to add feed line")
     } else {
       promise.resolve(true)
@@ -279,6 +283,7 @@ class EpsonManager: NSObject {
                              brightness: Double(EPOS2_PARAM_DEFAULT),
                              compress: EPOS2_PARAM_DEFAULT)
     if (result != EPOS2_SUCCESS.rawValue) {
+      printer.clearCommandBuffer()
       promise.reject(PrinterError.cmdAddImage.rawValue, "did fail to add image")
     } else {
       promise.resolve(true)
@@ -292,6 +297,7 @@ class EpsonManager: NSObject {
     }
     let result = printer.addText(text)
     if (result != EPOS2_SUCCESS.rawValue) {
+      printer.clearCommandBuffer()
       promise.reject(PrinterError.cmdAddText.rawValue, "did fail to add text: no printer")
     } else {
       promise.resolve(true)
@@ -309,6 +315,7 @@ class EpsonManager: NSObject {
     
     let result = printer.addTextAlign(textAlign.rawValue)
     if (result != EPOS2_SUCCESS.rawValue) {
+      printer.clearCommandBuffer()
       promise.reject(PrinterError.cmdAddTextAlign.rawValue, "did fail to add text align")
     } else {
       promise.resolve(true)
@@ -323,6 +330,7 @@ class EpsonManager: NSObject {
     
     let result = printer.addTextSize(width, height: height)
     if (result != EPOS2_SUCCESS.rawValue) {
+      printer.clearCommandBuffer()
       promise.reject(PrinterError.cmdAddTextSize.rawValue, "did fail to add text size")
     } else {
       promise.resolve(true)
@@ -351,6 +359,7 @@ class EpsonManager: NSObject {
     
     let result = printer.beginTransaction()
     if (result != EPOS2_SUCCESS.rawValue) {
+      printer.clearCommandBuffer()
       promise.reject(PrinterError.cmdBeginTransaction.rawValue, "did fail to begin transaction")
     } else {
       promise.resolve(true)
@@ -365,6 +374,7 @@ class EpsonManager: NSObject {
     
     let result = printer.endTransaction()
     if (result != EPOS2_SUCCESS.rawValue) {
+      printer.clearCommandBuffer()
       promise.reject(PrinterError.cmdEndTransaction.rawValue, "did fail to end transaction")
     } else {
       promise.resolve(true)
@@ -379,6 +389,8 @@ class EpsonManager: NSObject {
     
     let result = printer.sendData(Int(EPOS2_PARAM_DEFAULT))
     if (result != EPOS2_SUCCESS.rawValue) {
+      printer.clearCommandBuffer()
+      printer.disconnect()
       promise.reject(PrinterError.cmdSendData.rawValue, "did fail to send data")
     } else {
       promise.resolve(true)
@@ -398,6 +410,7 @@ class EpsonManager: NSObject {
         
     let result = printer.connect(target, timeout: Int(timeout))
     if (result != EPOS2_SUCCESS.rawValue) {
+      printer.clearCommandBuffer()
       isConnected = false
       printDebugLog("did fail to connect: \(result)")
       promise.reject(PrinterError.cmdConnect.rawValue, "did fail to connect")
@@ -415,6 +428,7 @@ class EpsonManager: NSObject {
     }
     
     let result = printer.disconnect()
+    printer.clearCommandBuffer()
     if (result != EPOS2_SUCCESS.rawValue) {
       isConnected = false
       promise.reject(PrinterError.cmdDisconnect.rawValue, "did fail to disconnect")
@@ -431,11 +445,14 @@ class EpsonManager: NSObject {
     }
     let result = printer.addCommand(data)
     if (result != EPOS2_SUCCESS.rawValue) {
+      printer.clearCommandBuffer()
       promise.reject(PrinterError.cmdSendData.rawValue, "did fail to add raw data")
       return
     }
     let sendResult = printer.sendData(Int(EPOS2_PARAM_DEFAULT))
     if (sendResult != EPOS2_SUCCESS.rawValue) {
+      printer.clearCommandBuffer()
+      printer.disconnect()
       promise.reject(PrinterError.cmdSendData.rawValue, "did fail to send raw data")
     } else {
       promise.resolve(true)
@@ -449,11 +466,14 @@ class EpsonManager: NSObject {
     }
     let result = printer.addPulse(pulseDrawer.rawValue, time: Int32(pulseTime))
     if (result != EPOS2_SUCCESS.rawValue) {
+      printer.clearCommandBuffer()
       promise.reject(PrinterError.cmdAddPulse.rawValue, "did fail to add pulse")
       return
     }
     let sendResult = printer.sendData(Int(EPOS2_PARAM_DEFAULT))
     if (sendResult != EPOS2_SUCCESS.rawValue) {
+      printer.clearCommandBuffer()
+      printer.disconnect()
       promise.reject(PrinterError.cmdSendData.rawValue, "did fail to send pulse data")
     } else {
       promise.resolve(true)
