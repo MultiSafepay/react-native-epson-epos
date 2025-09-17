@@ -1,7 +1,7 @@
 //
 //  Copyright (C) Seiko Epson Corporation 2016 - 2025. All rights reserved.
 //
-//  ePOS SDK Ver.2.33.0
+//  ePOS SDK Ver.2.33.1
 
 #ifdef __OBJC__
 #import <Foundation/Foundation.h>
@@ -1256,6 +1256,8 @@ enum Epos2PrinterSettingPrintSpeed : int {
 - (NSString *) getAdmin;
 - (NSString *) getLocation;
 
+- (int) setBufferingEnabled:(int)enabled;
+
 - (int) downloadFirmwareList:(NSString *)printerModel delegate:(id<Epos2FirmwareListDownloadDelegate>)delegate;
 - (int) downloadFirmwareList:(NSString *)printerModel option:(NSString *)option delegate:(id<Epos2FirmwareListDownloadDelegate>)delegate;
 - (int) getPrinterFirmwareInfo:(long)timeout delegate:(id<Epos2FirmwareInformationDelegate>)delegate;
@@ -1356,6 +1358,8 @@ enum Epos2PrinterSettingPrintSpeed : int {
 - (void) setConnectionEventDelegate:(id<Epos2ConnectionDelegate>)delegate;
 - (NSString *) getAdmin;
 - (NSString *) getLocation;
+
+- (int) setBufferingEnabled:(int)enabled;
 @end
 
 @interface Epos2DisplayStatusInfo : NSObject
@@ -1415,6 +1419,8 @@ enum Epos2PrinterSettingPrintSpeed : int {
 - (void) setConnectionEventDelegate:(id<Epos2ConnectionDelegate>)delegate;
 - (NSString *) getAdmin;
 - (NSString *) getLocation;
+
+- (int) setBufferingEnabled:(int)enabled;
 @end
 
 @interface Epos2KeyboardStatusInfo : NSObject
@@ -1437,6 +1443,8 @@ enum Epos2PrinterSettingPrintSpeed : int {
 - (void) setConnectionEventDelegate:(id<Epos2ConnectionDelegate>)delegate;
 - (NSString *) getAdmin;
 - (NSString *) getLocation;
+
+- (int) setBufferingEnabled:(int)enabled;
 @end
 
 @interface Epos2ScannerStatusInfo : NSObject
@@ -1456,6 +1464,8 @@ enum Epos2PrinterSettingPrintSpeed : int {
 - (void) setConnectionEventDelegate:(id<Epos2ConnectionDelegate>)delegate;
 - (NSString *) getAdmin;
 - (NSString *) getLocation;
+
+- (int) setBufferingEnabled:(int)enabled;
 @end
 
 @interface Epos2SimpleSerialStatusInfo : NSObject
@@ -1475,6 +1485,8 @@ enum Epos2PrinterSettingPrintSpeed : int {
 - (void) setConnectionEventDelegate:(id<Epos2ConnectionDelegate>)delegate;
 - (NSString *) getAdmin;
 - (NSString *) getLocation;
+
+- (int) setBufferingEnabled:(int)enabled;
 @end
 
 @interface Epos2CommBoxStatusInfo : NSObject
@@ -1538,6 +1550,8 @@ enum Epos2PrinterSettingPrintSpeed : int {
 - (void) setConnectionEventDelegate:(id<Epos2ConnectionDelegate>)delegate;
 - (NSString *) getAdmin;
 - (NSString *) getLocation;
+
+- (int) setBufferingEnabled:(int)enabled;
 @end
 
 @interface Epos2POSKeyboardStatusInfo : NSObject
@@ -1557,6 +1571,8 @@ enum Epos2PrinterSettingPrintSpeed : int {
 - (void) setConnectionEventDelegate:(id<Epos2ConnectionDelegate>)delegate;
 - (NSString *) getAdmin;
 - (NSString *) getLocation;
+
+- (int) setBufferingEnabled:(int)enabled;
 @end
 
 @interface Epos2CATStatusInfo : NSObject
@@ -1651,6 +1667,8 @@ enum Epos2PrinterSettingPrintSpeed : int {
 - (void) setConnectionEventDelegate:(id<Epos2ConnectionDelegate>)delegate;
 - (NSString *) getAdmin;
 - (NSString *) getLocation;
+
+- (int) setBufferingEnabled:(int)enabled;
 @end
 
 @interface Epos2MSRStatusInfo : NSObject
@@ -1685,6 +1703,8 @@ enum Epos2PrinterSettingPrintSpeed : int {
 - (void) setConnectionEventDelegate:(id<Epos2ConnectionDelegate>)delegate;
 - (NSString *) getAdmin;
 - (NSString *) getLocation;
+
+- (int) setBufferingEnabled:(int)enabled;
 @end
 
 @interface Epos2OtherPeripheralStatusInfo : NSObject
@@ -1705,6 +1725,8 @@ enum Epos2PrinterSettingPrintSpeed : int {
 - (void) setConnectionEventDelegate:(id<Epos2ConnectionDelegate>)delegate;
 - (NSString *) getAdmin;
 - (NSString *) getLocation;
+
+- (int) setBufferingEnabled:(int)enabled;
 @end
 
 @interface Epos2GermanyFiscalElementStatusinfo : NSObject
@@ -1724,6 +1746,8 @@ enum Epos2PrinterSettingPrintSpeed : int {
 - (void) setConnectionEventDelegate:(id<Epos2ConnectionDelegate>)delegate;
 - (NSString *) getAdmin;
 - (NSString *) getLocation;
+
+- (int) setBufferingEnabled:(int)enabled;
 @end
 
 @interface Epos2FirmwareInfo : NSObject
