@@ -4,14 +4,26 @@
     "appVersionSource": "local"
   },
   "build": {
-    // Use Expo Dev Clients for development builds
     "development": {
       "distribution": "internal",
       "developmentClient": true,
       "channel": "development",
-      "android": { "buildType": "apk" }
+      "android": {
+        "buildType": "apk"
+      },
+      "ios": {
+        "simulator": true
+      }
     },
-    "production": { "android": { "buildType": "apk" }, "channel": "production" }
+    "production": {
+      "autoIncrement": true,
+      "android": {
+        "buildType": "apk"
+      },
+      "channel": "production"
+    }
   },
-  "submit": { "production": {} }
+  "submit": {
+    "production": {}
+  }
 }
