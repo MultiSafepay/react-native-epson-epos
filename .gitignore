@@ -65,3 +65,8 @@ example/ios/
 
 # Android
 *.apk
+
+# iOS 
+*.app
+*.ipa
+*.dSYM
